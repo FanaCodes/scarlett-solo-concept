@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { FrameSequence, type ImageBox } from '../lib/FrameSequence'
@@ -31,7 +31,11 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
   const sectionRef = useRef<HTMLElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const readoutRef = useRef<HTMLSpanElement>(null)
+  const readoutRef = useRef<HTMLSpanElement | null>(null)
+  const setReadout = useCallback((node: HTMLSpanElement | null) => {
+    readoutRef.current = node
+    if (node && !node.textContent) node.textContent = '0000'
+  }, [])
   const needleRef = useRef<HTMLDivElement>(null)
   const scaleTrackRef = useRef<HTMLDivElement>(null)
 
@@ -129,6 +133,9 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
         // handler, and never more than once per frame index.
         tick = () => {
           seq.flush()
+          // The scale only exists once loading finishes, so its width is
+          // picked up on the first tick after that swap.
+          if (!scaleWidth) scaleWidth = scaleTrackRef.current?.clientWidth ?? 0
           if (needleRef.current && trigger) {
             needleRef.current.style.transform = `translateX(${trigger.progress * scaleWidth}px)`
           }
@@ -221,9 +228,9 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
                 <ScrubScale ref={needleRef} label={spec.scaleLabel} />
               </div>
               <p className="readout shrink-0 text-ink-2">
-                <span ref={readoutRef} className="text-ink">
-                  0000
-                </span>
+                {/* Written from the ticker, so it deliberately has no children
+                    in JSX: React must not reset it on a re-render. */}
+                <span ref={setReadout} className="text-ink" />
                 {' / '}
                 <FrameTotal spec={spec} />
               </p>

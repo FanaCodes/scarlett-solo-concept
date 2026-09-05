@@ -2,7 +2,16 @@ import { useSmoothScroll } from './lib/useSmoothScroll'
 import { IndexRail } from './components/IndexRail'
 import { Hero } from './components/Hero'
 import { FrameSequenceCanvas } from './components/FrameSequenceCanvas'
-import { turntable, turntableAnnotations, sections } from './content/product'
+import { MacroDetails } from './components/MacroDetails'
+import { Specifications } from './components/Specifications'
+import { Colophon } from './components/Colophon'
+import {
+  exploded,
+  explodedClaims,
+  sections,
+  turntable,
+  turntableAnnotations,
+} from './content/product'
 
 export function App() {
   useSmoothScroll()
@@ -20,7 +29,15 @@ export function App() {
           annotations={turntableAnnotations}
           clause={sections[1].clause}
         />
+        <FrameSequenceCanvas
+          spec={exploded}
+          annotations={explodedClaims}
+          clause={sections[2].clause}
+        />
+        <MacroDetails />
+        <Specifications />
       </main>
+      <Colophon />
     </>
   )
 }

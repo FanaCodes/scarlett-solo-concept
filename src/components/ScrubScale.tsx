@@ -41,12 +41,10 @@ export const ScrubScale = forwardRef<HTMLDivElement, Props>(function ScrubScale(
             </div>
           </div>
         ))}
-        {/* The needle. Moved from the GSAP ticker, never from React state. */}
-        <div
-          ref={ref}
-          className="absolute top-0 h-4 w-px bg-signal will-change-transform"
-          style={{ transform: 'translateX(0px)' }}
-        >
+        {/* The needle. Moved from the GSAP ticker, never from React state —
+            so it carries no style or text in JSX that a re-render could
+            overwrite. */}
+        <div ref={ref} className="absolute top-0 h-4 w-px bg-signal will-change-transform">
           <div className="absolute -top-1 -left-[3px] h-[7px] w-[7px] bg-signal" />
         </div>
       </div>
