@@ -19,6 +19,10 @@ gsap.registerPlugin(ScrollTrigger)
  */
 export function useSmoothScroll(): void {
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      // Dev-only handles for inspecting scrub state from the console.
+      Object.assign(window, { gsap, ScrollTrigger })
+    }
     if (prefersReducedMotion()) return
 
     const lenis = new Lenis({

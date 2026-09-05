@@ -1,4 +1,8 @@
 import { useSmoothScroll } from './lib/useSmoothScroll'
+import { IndexRail } from './components/IndexRail'
+import { Hero } from './components/Hero'
+import { FrameSequenceCanvas } from './components/FrameSequenceCanvas'
+import { turntable, turntableAnnotations, sections } from './content/product'
 
 export function App() {
   useSmoothScroll()
@@ -8,13 +12,14 @@ export function App() {
       <a className="skip-link legend" href="#main">
         Skip to content
       </a>
+      <IndexRail />
       <main id="main">
-        <section className="flex min-h-screen items-center bg-panel px-6">
-          <p className="legend">Harbour Two — shell</p>
-        </section>
-        <section className="flex min-h-screen items-center bg-paper px-6">
-          <p className="legend">Document ground</p>
-        </section>
+        <Hero />
+        <FrameSequenceCanvas
+          spec={turntable}
+          annotations={turntableAnnotations}
+          clause={sections[1].clause}
+        />
       </main>
     </>
   )

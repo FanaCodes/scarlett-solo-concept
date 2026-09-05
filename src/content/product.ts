@@ -49,6 +49,10 @@ export type MacroDetail = {
 export type SequenceSpec = {
   name: string
   manifestUrl: string
+  heading: string
+  intro: string
+  /** Sits under the scrub scale, in the panel legend voice. */
+  scaleLabel: string
   /** Scroll length of the pinned section, desktop and mobile. */
   scrollLength: { desktop: string; mobile: string }
   /** Frames held as static stacked images on the reduced-motion path. */
@@ -73,6 +77,10 @@ export const product = {
 export const turntable: SequenceSpec = {
   name: 'turntable',
   manifestUrl: '/frames/turntable/manifest.json',
+  heading: 'One turn around the unit',
+  intro:
+    'A full rotation, held under your scroll. Six parts of the unit are called out as they come round.',
+  scaleLabel: 'ROTATION / FRAME INDEX',
   scrollLength: { desktop: '+=300%', mobile: '+=200%' },
   keyFrames: [0, 30, 60, 90],
 }
@@ -145,6 +153,10 @@ export const turntableAnnotations: Annotation[] = [
 export const exploded: SequenceSpec = {
   name: 'exploded',
   manifestUrl: '/frames/exploded/manifest.json',
+  heading: 'Four layers, taken apart',
+  intro:
+    'The same unit separated along its depth axis: cover, main board, converter board, base.',
+  scaleLabel: 'SEPARATION / FRAME INDEX',
   scrollLength: { desktop: '+=200%', mobile: '+=150%' },
   keyFrames: [0, 20, 40, 59],
 }
@@ -152,8 +164,8 @@ export const exploded: SequenceSpec = {
 export const explodedClaims: Annotation[] = [
   {
     id: 'ground-plane',
-    enterFrame: 6,
-    exitFrame: 26,
+    enterFrame: 5,
+    exitFrame: 24,
     anchor: { x: 0.42, y: 0.52 },
     title: 'Four layers, one ground plane',
     body: 'Analogue and digital sections sit on opposite sides of an unbroken ground plane, joined at a single point beneath the converter.',
@@ -161,8 +173,8 @@ export const explodedClaims: Annotation[] = [
   },
   {
     id: 'isolation',
-    enterFrame: 24,
-    exitFrame: 44,
+    enterFrame: 25,
+    exitFrame: 43,
     anchor: { x: 0.55, y: 0.44 },
     title: 'Converter on its own island',
     body: 'The converter and its clock have a separately regulated supply, so nothing on the USB side can reach them.',
@@ -170,7 +182,7 @@ export const explodedClaims: Annotation[] = [
   },
   {
     id: 'assembly',
-    enterFrame: 42,
+    enterFrame: 44,
     exitFrame: 59,
     anchor: { x: 0.47, y: 0.63 },
     title: 'Serviceable, not sealed',

@@ -1,0 +1,56 @@
+import { forwardRef } from 'react'
+
+/**
+ * Scroll position inside a pinned act, drawn as a metering scale rather than a
+ * progress bar (DESIGN.md §6). The tick spacing follows the compressed law of a
+ * real dB scale, and the only accent colour on the page marks the overload zone.
+ */
+const TICKS = [-60, -40, -30, -20, -10, -6, -3, 0, 6] as const
+const MIN_DB = -60
+const MAX_DB = 6
+
+/** Compressed towards the quiet end, as a panel scale is. */
+function tickPosition(db: number): number {
+  const linear = (db - MIN_DB) / (MAX_DB - MIN_DB)
+  return Math.pow(linear, 1.9)
+}
+
+const ZERO_POSITION = tickPosition(0)
+
+type Props = { label: string }
+
+export const ScrubScale = forwardRef<HTMLDivElement, Props>(function ScrubScale({ label }, ref) {
+  return (
+    <div className="w-full select-none" aria-hidden="true">
+      <div className="relative h-8">
+        {/* Overload zone: 0 dB to +6 dB. */}
+        <div
+          className="absolute top-0 h-[3px] bg-signal"
+          style={{ left: `${ZERO_POSITION * 100}%`, right: 0 }}
+        />
+        <div className="absolute top-0 right-0 left-0 h-px bg-ink" />
+        {TICKS.map((db) => (
+          <div
+            key={db}
+            className="absolute top-0"
+            style={{ left: `${tickPosition(db) * 100}%` }}
+          >
+            <div className={`w-px bg-ink ${db % 20 === 0 || db === 6 ? 'h-2.5' : 'h-1.5'}`} />
+            <div className="readout mt-1 -translate-x-1/2 text-ink-2">
+              {db > 0 ? `+${db}` : db}
+            </div>
+          </div>
+        ))}
+        {/* The needle. Moved from the GSAP ticker, never from React state. */}
+        <div
+          ref={ref}
+          className="absolute top-0 h-4 w-px bg-signal will-change-transform"
+          style={{ transform: 'translateX(0px)' }}
+        >
+          <div className="absolute -top-1 -left-[3px] h-[7px] w-[7px] bg-signal" />
+        </div>
+      </div>
+      <div className="legend mt-2 text-ink-2">{label}</div>
+    </div>
+  )
+})

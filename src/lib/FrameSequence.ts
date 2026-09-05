@@ -68,6 +68,15 @@ export function framePath(
     .replaceAll('{format}', format)
 }
 
+/** Fetch and validate a sequence manifest. The only entry point for one. */
+export async function loadManifest(manifestUrl: string): Promise<FrameManifest> {
+  const response = await fetch(manifestUrl, { cache: 'force-cache' })
+  if (!response.ok) throw new Error(`manifest ${response.status} ${manifestUrl}`)
+  const manifest: unknown = await response.json()
+  if (!isManifest(manifest)) throw new Error(`malformed manifest at ${manifestUrl}`)
+  return manifest
+}
+
 /** One probe per page load, shared by every sequence. */
 let avifSupport: Promise<boolean> | null = null
 function supportsAvif(): Promise<boolean> {
@@ -139,11 +148,7 @@ export class FrameSequence {
     canvas: HTMLCanvasElement,
     events: FrameSequenceEvents = {},
   ): Promise<FrameSequence> {
-    const response = await fetch(manifestUrl, { cache: 'force-cache' })
-    if (!response.ok) throw new Error(`manifest ${response.status} ${manifestUrl}`)
-    const manifest: unknown = await response.json()
-    if (!isManifest(manifest)) throw new Error(`malformed manifest at ${manifestUrl}`)
-
+    const manifest = await loadManifest(manifestUrl)
     const width = pickWidthTier(manifest.widths)
     const format =
       manifest.formats.includes('avif') && (await supportsAvif())
