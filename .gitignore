@@ -1,0 +1,12 @@
+node_modules
+dist
+.DS_Store
+*.local
+.vite
+
+# Source 3D model — large binary, not consumed by the web build.
+# Kept on disk at model/ as the render source for the frame sequences.
+model/*.glb
+
+# Intermediate PNGs emitted by make-placeholder-frames.mjs before conversion
+scripts/.tmp-frames

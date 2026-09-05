@@ -1,0 +1,113 @@
+@import 'tailwindcss';
+
+/*
+  Harbour Two — design tokens.
+  Six values, per DESIGN.md §2. Two grounds (panel / paper), one accent (signal).
+*/
+@theme {
+  --color-panel: #b9bcb6;
+  --color-paper: #f1f1ee;
+  --color-ink: #15171a;
+  --color-ink-2: #4a4f51;
+  --color-rule: #8e938c;
+  --color-signal: #a6301c;
+
+  --font-sans:
+    'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
+  --font-legend:
+    'IBM Plex Sans Condensed', 'IBM Plex Sans', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Width of the datasheet index rail at >=1024px. */
+  --spacing-rail: 5.25rem;
+}
+
+@layer base {
+  html {
+    /* Lenis drives scrolling; native smooth behaviour would fight it. */
+    scroll-behavior: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-panel);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    /* Principle 2: numbers are the ornament — tabular lining figures everywhere. */
+    font-variant-numeric: tabular-nums lining-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* Lenis: the html element is the scroll container. */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: var(--color-ink);
+    color: var(--color-paper);
+  }
+}
+
+@layer components {
+  /* Panel silkscreen: the small hard-edged labels printed on a chassis. */
+  .legend {
+    font-family: var(--font-legend);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.055em;
+    font-size: 0.6875rem;
+    line-height: 1;
+  }
+
+  /* Genuine readouts only: frame counters, dB values, tolerances, serial plate. */
+  .readout {
+    font-family: var(--font-mono);
+    font-weight: 400;
+    font-size: 0.6875rem;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  .measure {
+    max-width: 66ch;
+  }
+
+  /* One hairline weight across the whole page (principle 1). */
+  .hairline {
+    border-color: var(--color-rule);
+    border-width: 0;
+    border-top-width: 1px;
+  }
+}
+
+/* Skip link — visible only when focused. */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  transform: translateY(-200%);
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: 0.5rem 0.75rem;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
