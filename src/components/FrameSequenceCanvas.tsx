@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { FrameSequence, type ImageBox } from '../lib/FrameSequence'
-import type { Annotation, SequenceSpec } from '../content/product'
+import { ui, type Annotation, type SequenceSpec } from '../content/product'
 import { AnnotationLayer } from './AnnotationLayer'
 import { ScrubScale } from './ScrubScale'
 import { FrameStill } from './FrameStill'
@@ -39,7 +39,7 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
   const readoutRef = useRef<HTMLSpanElement | null>(null)
   const setReadout = useCallback((node: HTMLSpanElement | null) => {
     readoutRef.current = node
-    if (node && !node.textContent) node.textContent = '0000'
+    if (node && !node.textContent) node.textContent = ui.frameReadoutPlaceholder
   }, [])
   const needleRef = useRef<HTMLDivElement>(null)
   const scaleTrackRef = useRef<HTMLDivElement>(null)
@@ -291,7 +291,7 @@ function LoadingRule({ progress }: { progress: number }) {
         />
       </div>
       <div className="legend mt-2 flex justify-between text-ink-2">
-        <span>Loading sequence</span>
+        <span>{ui.loadingSequence}</span>
         <span className="readout">{String(Math.round(progress * 100)).padStart(3, '0')}%</span>
       </div>
     </div>
@@ -330,12 +330,12 @@ function StaticSequence({
       </header>
 
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        {keyFrames.map((frame) => (
+        {keyFrames.map((frame, index) => (
           <FrameStill
             key={frame}
             manifestUrl={spec.manifestUrl}
             frame={frame}
-            alt={`${spec.heading}, view ${frame + 1} of ${keyFrames.length}.`}
+            alt={ui.keyFrameAlt(spec.heading, index + 1, keyFrames.length)}
             sizes="(min-width: 640px) 45vw, 92vw"
             className="w-full"
           />

@@ -5,13 +5,7 @@ import { FrameSequenceCanvas } from './components/FrameSequenceCanvas'
 import { MacroDetails } from './components/MacroDetails'
 import { Specifications } from './components/Specifications'
 import { Colophon } from './components/Colophon'
-import {
-  exploded,
-  explodedClaims,
-  sections,
-  turntable,
-  turntableAnnotations,
-} from './content/product'
+import { exploded, explodedClaims, section, turntable, turntableAnnotations, ui } from './content/product'
 
 export function App() {
   useSmoothScroll()
@@ -19,7 +13,7 @@ export function App() {
   return (
     <>
       <a className="skip-link legend" href="#main">
-        Skip to content
+        {ui.skipToContent}
       </a>
       <IndexRail />
       <main id="main">
@@ -27,12 +21,12 @@ export function App() {
         <FrameSequenceCanvas
           spec={turntable}
           annotations={turntableAnnotations}
-          clause={sections[1].clause}
+          clause={section('turntable').clause}
         />
         <FrameSequenceCanvas
           spec={exploded}
           annotations={explodedClaims}
-          clause={sections[2].clause}
+          clause={section('exploded').clause}
         />
         <MacroDetails />
         <Specifications />

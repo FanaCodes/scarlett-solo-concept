@@ -1,6 +1,8 @@
-import { colophon, product } from '../content/product'
+import { colophon, product, section } from '../content/product'
 
 export function Colophon() {
+  const copy = section('colophon')
+
   return (
     <footer
       id="colophon"
@@ -8,7 +10,7 @@ export function Colophon() {
       aria-labelledby="colophon-heading"
     >
       <h2 id="colophon-heading" className="text-base leading-none font-semibold">
-        Colophon
+        {copy.title}
       </h2>
       <p className="measure mt-3 text-[0.9375rem] leading-[1.55] text-pretty text-ink-2">{colophon.intro}</p>
 

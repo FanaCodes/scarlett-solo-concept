@@ -1,4 +1,4 @@
-import { specGroups, specsNote } from '../content/product'
+import { section, specGroups } from '../content/product'
 
 /**
  * A real table, grouped by signal path. Values are tabular lining figures and
@@ -6,6 +6,8 @@ import { specGroups, specsNote } from '../content/product'
  * lines up on its decimal and every unit lines up on its first letter.
  */
 export function Specifications() {
+  const copy = section('specifications')
+
   return (
     <section
       id="specifications"
@@ -13,9 +15,9 @@ export function Specifications() {
       aria-labelledby="specifications-heading"
     >
       <h2 id="specifications-heading" className="text-2xl leading-none font-semibold">
-        Specifications
+        {copy.title}
       </h2>
-      <p className="measure mt-2 text-[0.8125rem] leading-[1.5] text-pretty text-ink-2">{specsNote}</p>
+      <p className="measure mt-2 text-[0.8125rem] leading-[1.5] text-pretty text-ink-2">{copy.intro}</p>
 
       <div className="mt-10 grid gap-x-16 gap-y-12 lg:grid-cols-2">
         {specGroups.map((group) => (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { product, sections } from '../content/product'
+import { product, sections, ui } from '../content/product'
 
 /**
  * The datasheet margin: clause numbers down the left edge, the current one in
@@ -51,7 +51,7 @@ export function IndexRail() {
       </div>
 
       <nav
-        aria-label="Sections"
+        aria-label={ui.railLabel}
         className="fixed top-0 bottom-0 left-0 z-40 hidden w-rail flex-col justify-between border-r border-rule px-4 py-6 lg:flex"
       >
         <ol className="m-0 list-none space-y-3 p-0">

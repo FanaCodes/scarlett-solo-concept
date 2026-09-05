@@ -1,4 +1,4 @@
-import { macroDetails, sections, turntable, exploded } from '../content/product'
+import { macroDetails, section, turntable, exploded } from '../content/product'
 import { FrameStill } from './FrameStill'
 
 const manifestFor: Record<string, string> = {
@@ -12,14 +12,16 @@ const manifestFor: Record<string, string> = {
  * copy against the paper ground, hard cut between them.
  */
 export function MacroDetails() {
+  const copy = section('details')
+
   return (
     <section id="details" className="bg-paper lg:pl-rail" aria-labelledby="details-heading">
       <div className="px-6 pt-16 pb-10">
         <h2 id="details-heading" className="text-2xl leading-none font-semibold">
-          Detail
+          {copy.title}
         </h2>
-        <p className="measure mt-2 text-[0.8125rem] leading-[1.5] text-ink-2">
-          Four things that are easier to show than to claim.
+        <p className="measure mt-2 text-[0.8125rem] leading-[1.5] text-pretty text-ink-2">
+          {copy.intro}
         </p>
       </div>
 
@@ -61,7 +63,7 @@ export function MacroDetails() {
         ))}
       </ol>
       <div className="legend border-t border-rule px-6 py-3 text-ink-2">
-        {sections[3].clause} {sections[3].title}
+        {copy.clause} {copy.title}
       </div>
     </section>
   )

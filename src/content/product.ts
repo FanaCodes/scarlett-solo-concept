@@ -302,11 +302,44 @@ export const colophon = {
 
 // --- section index (the datasheet rail) ------------------------------------
 
-export const sections = [
+export type Section = {
+  id: string
+  /** Clause number in the rail. */
+  clause: string
+  title: string
+  intro?: string
+}
+
+export const sections: Section[] = [
   { id: 'hero', clause: '0.0', title: 'Harbour Two' },
   { id: 'turntable', clause: '1.0', title: 'The unit' },
   { id: 'exploded', clause: '2.0', title: 'Inside' },
-  { id: 'details', clause: '3.0', title: 'Detail' },
-  { id: 'specifications', clause: '4.0', title: 'Specifications' },
+  {
+    id: 'details',
+    clause: '3.0',
+    title: 'Detail',
+    intro: 'Four things that are easier to show than to claim.',
+  },
+  { id: 'specifications', clause: '4.0', title: 'Specifications', intro: specsNote },
   { id: 'colophon', clause: '5.0', title: 'Colophon' },
-] as const
+]
+
+/** Components look sections up by id rather than by position. */
+export function section(id: string): Section {
+  const found = sections.find((s) => s.id === id)
+  if (!found) throw new Error(`Unknown section: ${id}`)
+  return found
+}
+
+// --- interface strings ------------------------------------------------------
+
+export const ui = {
+  skipToContent: 'Skip to content',
+  railLabel: 'Sections',
+  loadingSequence: 'Loading sequence',
+  /** Placeholder shown in the frame readout before the first draw. */
+  frameReadoutPlaceholder: '0000',
+  /** Alt text for a key frame on the reduced-motion and failure paths. */
+  keyFrameAlt: (heading: string, index: number, total: number) =>
+    `${heading}, view ${index} of ${total}.`,
+}
