@@ -1,5 +1,6 @@
 import { framePath, type FrameManifest } from '../lib/FrameSequence'
 import { useManifest } from '../lib/useManifest'
+import { markHeroReady } from '../lib/heroReady'
 
 type Props = {
   manifestUrl: string
@@ -53,6 +54,8 @@ export function FrameStill({
         height={height}
         className={className}
         loading={priority ? 'eager' : 'lazy'}
+        onLoad={priority ? markHeroReady : undefined}
+        onError={priority ? markHeroReady : undefined}
         fetchPriority={priority ? 'high' : 'auto'}
         decoding={priority ? 'sync' : 'async'}
       />

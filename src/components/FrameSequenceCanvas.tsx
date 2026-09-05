@@ -8,6 +8,7 @@ import { ScrubScale } from './ScrubScale'
 import { FrameStill } from './FrameStill'
 import { getManifest } from '../lib/useManifest'
 import { useMediaQuery, useReducedMotion } from '../lib/motion'
+import { whenHeroReady } from '../lib/heroReady'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -15,6 +16,10 @@ gsap.registerPlugin(ScrollTrigger)
 const COLUMN_RESERVE = 344
 const STRIP_RESERVE = 176
 const COMPACT_QUERY = '(max-width: 1023px)'
+/** Start decoding a sequence when the act is this far ahead of the viewport. */
+const PRELOAD_START = 'top bottom+=150%'
+
+
 
 type Props = {
   spec: SequenceSpec
@@ -57,6 +62,7 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
     let tween: gsap.core.Tween | null = null
     let tick: (() => void) | null = null
     let observer: ResizeObserver | null = null
+    let preload: ScrollTrigger | null = null
     let cancelled = false
     let lastPercent = -1
     let lastIndex = -1
@@ -105,6 +111,18 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
 
         observer = new ResizeObserver(syncLayout)
         observer.observe(stageEl)
+
+        // Decoding starts only once the hero still has painted and the act is
+        // within striking distance of the viewport, so the largest paint on the
+        // page never queues behind a few megabytes of frames.
+        preload = ScrollTrigger.create({
+          trigger: section,
+          start: PRELOAD_START,
+          once: true,
+          onEnter: () => {
+            void whenHeroReady().then(() => seq.load())
+          },
+        })
 
         const proxy = { frame: 0 }
         tween = gsap.to(proxy, {
@@ -165,6 +183,7 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
       cancelled = true
       if (tick) gsap.ticker.remove(tick)
       observer?.disconnect()
+      preload?.kill()
       releasePin()
       sequence?.destroy()
     }

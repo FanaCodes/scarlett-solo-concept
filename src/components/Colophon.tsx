@@ -10,12 +10,12 @@ export function Colophon() {
       <h2 id="colophon-heading" className="text-base leading-none font-semibold">
         Colophon
       </h2>
-      <p className="measure mt-3 text-[0.9375rem] leading-[1.55] text-ink-2">{colophon.intro}</p>
+      <p className="measure mt-3 text-[0.9375rem] leading-[1.55] text-pretty text-ink-2">{colophon.intro}</p>
 
       <dl className="mt-8 grid max-w-3xl gap-x-10 gap-y-3 sm:grid-cols-2">
         {colophon.credits.map((credit) => (
           <div key={credit.role} className="flex items-baseline gap-4 border-t border-rule pt-2">
-            <dt className="legend w-24 shrink-0 text-ink-2">{credit.role}</dt>
+            <dt className="legend w-28 shrink-0 text-ink-2">{credit.role}</dt>
             <dd className="m-0 text-[0.875rem] leading-tight">{credit.value}</dd>
           </div>
         ))}

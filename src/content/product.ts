@@ -65,7 +65,7 @@ export const product = {
   maker: 'Harbour Instruments',
   name: 'Harbour Two',
   type: 'H2',
-  panelLegend: 'H2 / 2x4 DESKTOP INTERFACE',
+  panelLegend: 'H2 / 2×4 DESKTOP INTERFACE',
   serial: 'SN 0001',
   positioning:
     'Two discrete microphone preamplifiers, four analogue outputs, and a monitor path with nothing in it you did not ask for.',
@@ -99,7 +99,7 @@ export const turntableAnnotations: Annotation[] = [
     anchor: { x: 0.3, y: 0.66 },
     title: 'Microphone inputs',
     body: 'Two discrete transformer-coupled preamplifiers on a single board, laid out as mirrored channels so both signal paths are the same length.',
-    readout: 'EIN -130 dBu, 150 ohm, 60 dB',
+    readout: 'EIN −130 dBu, 150 Ω, 60 dB',
   },
   {
     id: 'gain',
@@ -117,7 +117,7 @@ export const turntableAnnotations: Annotation[] = [
     anchor: { x: 0.57, y: 0.47 },
     title: 'Conversion and clocking',
     body: 'A single low-jitter clock feeds both converters. There is no internal resampling: the rate you choose is the rate the converter runs at.',
-    readout: '24-bit / 192 kHz, +-2 ppm',
+    readout: '24-bit / 192 kHz, ±2 ppm',
   },
   {
     id: 'monitor',
@@ -126,7 +126,7 @@ export const turntableAnnotations: Annotation[] = [
     anchor: { x: 0.6, y: 0.34 },
     title: 'Monitor control',
     body: 'Level is set by a relay-switched resistor ladder in the analogue domain, ahead of the outputs, so nothing is thrown away digitally to make it quieter.',
-    readout: 'Channel match +-0.05 dB',
+    readout: 'Channel match ±0.05 dB',
   },
   {
     id: 'headphones',
@@ -134,8 +134,8 @@ export const turntableAnnotations: Annotation[] = [
     exitFrame: 106,
     anchor: { x: 0.33, y: 0.62 },
     title: 'Headphone outputs',
-    body: 'Two independent amplifiers, each with its own level control, driving anything from 16 to 600 ohms without running out of voltage.',
-    readout: '2 x 250 mW into 32 ohm',
+    body: 'Two independent amplifiers, each with its own level control, driving anything from 16 to 600 Ω without running out of voltage.',
+    readout: '2 × 250 mW into 32 Ω',
   },
   {
     id: 'chassis',
@@ -169,7 +169,7 @@ export const explodedClaims: Annotation[] = [
     anchor: { x: 0.42, y: 0.52 },
     title: 'Four layers, one ground plane',
     body: 'Analogue and digital sections sit on opposite sides of an unbroken ground plane, joined at a single point beneath the converter.',
-    readout: '4-layer, 70 um copper',
+    readout: '4-layer, 70 µm copper',
   },
   {
     id: 'isolation',
@@ -178,7 +178,7 @@ export const explodedClaims: Annotation[] = [
     anchor: { x: 0.55, y: 0.44 },
     title: 'Converter on its own island',
     body: 'The converter and its clock have a separately regulated supply, so nothing on the USB side can reach them.',
-    readout: 'Supply noise < 3 uV RMS',
+    readout: 'Supply noise < 3 µV RMS',
   },
   {
     id: 'assembly',
@@ -239,10 +239,10 @@ export const specGroups: SpecGroup[] = [
     rows: [
       { label: 'Microphone inputs', value: '2', note: 'XLR, transformer-coupled' },
       { label: 'Gain range', value: '69', unit: 'dB', note: '1 dB steps' },
-      { label: 'Equivalent input noise', value: '-130', unit: 'dBu', note: '150 ohm, 60 dB gain' },
+      { label: 'Equivalent input noise', value: '−130', unit: 'dBu', note: '150 Ω, 60 dB gain' },
       { label: 'Maximum input level', value: '+12', unit: 'dBu' },
-      { label: 'Input impedance', value: '3.0', unit: 'k ohm' },
-      { label: 'Instrument inputs', value: '2', note: '1 M ohm, front panel' },
+      { label: 'Input impedance', value: '3.0', unit: 'kΩ' },
+      { label: 'Instrument inputs', value: '2', note: '1 MΩ, front panel' },
     ],
   },
   {
@@ -250,11 +250,11 @@ export const specGroups: SpecGroup[] = [
     title: 'Conversion',
     rows: [
       { label: 'Resolution', value: '24', unit: 'bit' },
-      { label: 'Sample rates', value: '44.1 - 192', unit: 'kHz' },
+      { label: 'Sample rates', value: '44.1–192', unit: 'kHz' },
       { label: 'Dynamic range', value: '120', unit: 'dB', note: 'A-weighted' },
-      { label: 'THD+N', value: '< 0.0008', unit: '%', note: '1 kHz, -1 dBFS' },
-      { label: 'Frequency response', value: '20 - 20k', unit: 'Hz', note: '+-0.05 dB' },
-      { label: 'Clock stability', value: '+-2', unit: 'ppm' },
+      { label: 'THD+N', value: '< 0.0008', unit: '%', note: '1 kHz, −1 dBFS' },
+      { label: 'Frequency response', value: '20–20k', unit: 'Hz', note: '±0.05 dB' },
+      { label: 'Clock stability', value: '±2', unit: 'ppm' },
     ],
   },
   {
@@ -263,10 +263,10 @@ export const specGroups: SpecGroup[] = [
     rows: [
       { label: 'Line outputs', value: '4', note: 'balanced, impedance-compensated' },
       { label: 'Maximum output level', value: '+18', unit: 'dBu' },
-      { label: 'Output impedance', value: '75', unit: 'ohm' },
+      { label: 'Output impedance', value: '75', unit: 'Ω' },
       { label: 'Headphone outputs', value: '2', note: 'independent amplifiers' },
-      { label: 'Headphone power', value: '250', unit: 'mW', note: 'per channel into 32 ohm' },
-      { label: 'Monitor attenuation', value: '0 - 96', unit: 'dB', note: 'relay ladder, analogue' },
+      { label: 'Headphone power', value: '250', unit: 'mW', note: 'per channel into 32 Ω' },
+      { label: 'Monitor attenuation', value: '0–96', unit: 'dB', note: 'relay ladder, analogue' },
     ],
   },
   {
@@ -284,7 +284,7 @@ export const specGroups: SpecGroup[] = [
 ]
 
 export const specsNote =
-  'Figures are typical for a production unit at 24-bit / 48 kHz unless stated otherwise, measured at the outputs with a 20 Hz to 20 kHz bandwidth.'
+  'Figures are typical for a production unit at 24-bit / 48 kHz unless stated otherwise, measured at the outputs over a 20 Hz to 20 kHz bandwidth.'
 
 // --- colophon --------------------------------------------------------------
 

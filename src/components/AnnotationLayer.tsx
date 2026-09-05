@@ -93,10 +93,10 @@ export function AnnotationLayer({ annotations, activeIds, imageBox, stage, compa
             >
               <div className="border-t border-ink pt-2">
                 <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="text-[0.95rem] leading-tight font-semibold">{a.title}</h3>
+                  <h3 className="text-[0.95rem] leading-tight font-semibold text-balance">{a.title}</h3>
                   <span className="readout text-ink-2">{String(i + 1).padStart(2, '0')}</span>
                 </div>
-                <p className="mt-1.5 max-w-[42ch] text-[0.8125rem] leading-[1.5] text-ink-2">
+                <p className="mt-1.5 max-w-[42ch] text-[0.8125rem] leading-[1.5] text-pretty text-ink-2">
                   {a.body}
                 </p>
                 {a.readout ? (

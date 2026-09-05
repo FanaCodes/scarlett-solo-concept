@@ -15,7 +15,7 @@ export function Specifications() {
       <h2 id="specifications-heading" className="text-2xl leading-none font-semibold">
         Specifications
       </h2>
-      <p className="measure mt-2 text-[0.8125rem] leading-[1.5] text-ink-2">{specsNote}</p>
+      <p className="measure mt-2 text-[0.8125rem] leading-[1.5] text-pretty text-ink-2">{specsNote}</p>
 
       <div className="mt-10 grid gap-x-16 gap-y-12 lg:grid-cols-2">
         {specGroups.map((group) => (

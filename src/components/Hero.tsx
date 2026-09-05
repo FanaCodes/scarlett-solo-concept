@@ -42,14 +42,14 @@ export function Hero() {
       </div>
 
       <div className="flex min-h-0 flex-1 items-center justify-center py-8">
-        <div className="w-full max-w-4xl" data-hero="still">
+        <div className="w-full max-w-5xl" data-hero="still">
           <FrameStill
             manifestUrl={turntable.manifestUrl}
             frame={0}
             priority
             sizes="(min-width: 1024px) 56rem, 92vw"
             alt={`The ${product.name} desktop audio interface, seen from the front.`}
-            className="mx-auto block h-auto max-h-[52vh] w-auto max-w-full"
+            className="mx-auto block h-auto max-h-[56vh] w-auto max-w-full"
           />
         </div>
       </div>
@@ -65,7 +65,7 @@ export function Hero() {
           </h1>
           <div className="mt-5 h-px origin-left bg-ink" data-hero="rule" />
           <p
-            className="measure mt-4 text-[0.9375rem] leading-[1.55] text-ink-2"
+            className="measure mt-4 text-[0.9375rem] leading-[1.55] text-pretty text-ink-2"
             data-hero="fade"
           >
             {product.positioning}

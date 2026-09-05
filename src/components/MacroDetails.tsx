@@ -39,7 +39,7 @@ export function MacroDetails() {
                 frame={detail.still.frame}
                 alt={detail.alt}
                 sizes="(min-width: 1024px) 46vw, 92vw"
-                className="mx-auto block h-auto max-h-[46vh] w-auto max-w-full"
+                className="mx-auto block h-auto max-h-[48vh] w-auto max-w-full"
               />
             </div>
 
@@ -48,8 +48,8 @@ export function MacroDetails() {
                 index % 2 === 1 ? 'lg:order-1' : ''
               }`}
             >
-              <h3 className="max-w-[18ch] text-xl leading-tight font-semibold">{detail.title}</h3>
-              <p className="measure mt-3 text-[0.9375rem] leading-[1.55] text-ink-2">
+              <h3 className="max-w-[22ch] text-xl leading-tight font-semibold text-balance">{detail.title}</h3>
+              <p className="measure mt-3 text-[0.9375rem] leading-[1.55] text-pretty text-ink-2">
                 {detail.body}
               </p>
               <dl className="mt-6 flex max-w-sm items-baseline justify-between border-t border-ink pt-2">

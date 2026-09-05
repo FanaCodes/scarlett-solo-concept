@@ -77,21 +77,31 @@ export async function loadManifest(manifestUrl: string): Promise<FrameManifest> 
   return manifest
 }
 
-/** One probe per page load, shared by every sequence. */
+/**
+ * One probe per page load, shared by every sequence. It decodes a 2x2 AVIF
+ * with alpha through createImageBitmap — the exact path the frames take, so
+ * the answer is about what the engine can actually use, not about what an
+ * <img> tag would accept.
+ */
 let avifSupport: Promise<boolean> | null = null
 function supportsAvif(): Promise<boolean> {
   if (!avifSupport) {
-    avifSupport = new Promise<boolean>((resolve) => {
-      const img = new Image()
-      img.onload = () => resolve(img.width > 0)
-      img.onerror = () => resolve(false)
-      // 1x1 AVIF.
-      img.src =
-        'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAABEaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAEAAAABAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQAMAAAAABNjb2xybmNseAACAAIABoAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgABogQEDQgMgkQAAAAB8dSLfI='
-    })
+    avifSupport = (async () => {
+      try {
+        const blob = await (await fetch(AVIF_PROBE)).blob()
+        const bitmap = await createImageBitmap(blob)
+        bitmap.close()
+        return true
+      } catch {
+        return false
+      }
+    })()
   }
   return avifSupport
 }
+
+const AVIF_PROBE =
+  'data:image/avif;base64,AAAAHGZ0eXBhdmlmAAAAAG1pZjFhdmlmbWlhZgAAAXBtZXRhAAAAAAAAACFoZGxyAAAAAAAAAABwaWN0AAAAAAAAAAAAAAAAAAAAAA5waXRtAAAAAAABAAAANGlsb2MAAAAAREAAAgABAAAAAAGUAAEAAAAAAAAAFwACAAAAAAGrAAEAAAAAAAAAEgAAADhpaW5mAAAAAAACAAAAFWluZmUCAAAAAAEAAGF2MDEAAAAAFWluZmUCAAAAAAIAAGF2MDEAAAAAr2lwcnAAAACKaXBjbwAAAAxhdjFDgSACAAAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQAcAAAAAA5waXhpAAAAAAEIAAAAOGF1eEMAAAAAdXJuOm1wZWc6bXBlZ0I6Y2ljcDpzeXN0ZW1zOmF1eGlsaWFyeTphbHBoYQAAAAAdaXBtYQAAAAAAAAACAAEDgQIDAAIEhAIFhgAAABppcmVmAAAAAAAAAA5hdXhsAAIAAQABAAAAMW1kYXQSAAoHOAA2EBDQaTIKH5A////EAACv7hIACgQYADYVMggfkP/xAAIgqA=='
 
 async function decodeFrame(url: string, signal: AbortSignal): Promise<ImageBitmap> {
   const response = await fetch(url, { signal, cache: 'force-cache' })
@@ -114,6 +124,7 @@ export class FrameSequence {
   private lastDrawnIndex = -1
   private pendingIndex = 0
   private dirty = true
+  private loadStarted = false
   private box: ImageBox = { x: 0, y: 0, width: 0, height: 0 }
   private destroyed = false
 
@@ -139,9 +150,9 @@ export class FrameSequence {
   }
 
   /**
-   * Fetch the manifest, choose a width tier, then decode every frame. Resolves
-   * once frame 0 is on screen; the rest continue in the background and the
-   * caller is told through onProgress / onReady.
+   * Fetch the manifest and choose a width tier. Deliberately does not start
+   * decoding: the caller decides when, so a sequence never competes with the
+   * hero image for bandwidth. Call load() to begin.
    */
   static async create(
     manifestUrl: string,
@@ -155,9 +166,14 @@ export class FrameSequence {
         ? 'avif'
         : (manifest.formats.find((f) => f !== 'avif') ?? manifest.formats[0])
 
-    const seq = new FrameSequence(manifest, canvas, events, width, format)
-    void seq.loadAll()
-    return seq
+    return new FrameSequence(manifest, canvas, events, width, format)
+  }
+
+  /** Begin decoding. Idempotent; safe to call from an observer that may re-fire. */
+  load(): void {
+    if (this.loadStarted || this.destroyed) return
+    this.loadStarted = true
+    void this.loadAll()
   }
 
   private async loadAll(): Promise<void> {

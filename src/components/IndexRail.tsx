@@ -59,10 +59,17 @@ export function IndexRail() {
             <li key={section.id}>
               <a
                 href={`#${section.id}`}
-                className={`readout block ${
-                  activeId === section.id ? 'text-ink' : 'text-ink-2/60'
+                aria-current={activeId === section.id ? 'true' : undefined}
+                className={`readout relative block ${
+                  activeId === section.id ? 'text-ink' : 'text-ink-2'
                 }`}
               >
+                {activeId === section.id ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1/2 -left-3 h-1.5 w-1.5 -translate-y-1/2 bg-signal"
+                  />
+                ) : null}
                 <span aria-hidden="true">{section.clause}</span>
                 <span className="sr-only">{section.title}</span>
               </a>

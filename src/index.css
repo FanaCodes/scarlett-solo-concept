@@ -8,7 +8,8 @@
   --color-panel: #b9bcb6;
   --color-paper: #f1f1ee;
   --color-ink: #15171a;
-  --color-ink-2: #4a4f51;
+  /* Dark enough to clear 4.5:1 on the panel ground, not only on paper. */
+  --color-ink-2: #3c4143;
   --color-rule: #8e938c;
   --color-signal: #a6301c;
 

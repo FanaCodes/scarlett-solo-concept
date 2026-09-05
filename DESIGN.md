@@ -8,7 +8,7 @@ Written before any component code. Revised once against the brief (see §6).
 
 **Harbour Two**, type designation **H2**, a 2-in / 4-out desktop recording interface.
 Two discrete mic preamps, 24-bit/192 kHz conversion, relay-switched monitor control.
-Panel legend on the unit reads `H2 · 2×4 DESKTOP INTERFACE`.
+Panel legend on the unit reads `H2 / 2×4 DESKTOP INTERFACE`.
 
 ## 2. Palette — 6 values
 
@@ -17,9 +17,9 @@ Panel legend on the unit reads `H2 · 2×4 DESKTOP INTERFACE`.
 | `--panel`   | `#B9BCB6` | Anodised aluminium grey-green. Ground for the *hardware* sections: hero and both pinned acts. |
 | `--paper`   | `#F1F1EE` | Datasheet stock. Ground for the *document* sections: macro details, specifications, colophon. |
 | `--ink`     | `#15171A` | Silkscreen black. All primary text, all hairlines at full strength. |
-| `--ink-2`   | `#4A4F51` | Secondary text: captions, table sub-labels, colophon. |
+| `--ink-2`   | `#3C4143` | Secondary text: captions, table sub-labels, colophon. Dark enough to clear 4.5:1 on the panel ground, not only on paper. |
 | `--rule`    | `#8E938C` | Engraved grey. Hairlines, table rules, dB-scale ticks, leader lines on panel. |
-| `--signal`  | `#A6301C` | Oxide red, the colour of a peak lamp. **Functional only:** active annotation key, the 0 dB → +6 zone of the scale, the record dot. Never a fill, never a highlighted word. |
+| `--signal`  | `#A6301C` | Oxide red, the colour of a peak lamp. **Functional only:** the active annotation anchor, the 0 dB to +6 zone of the scale, and the current-clause marker in the rail. Never a fill, never a highlighted word. |
 
 Two grounds, one accent. The page is made of the two materials the product ships as: the anodised
 panel and the printed manual bound behind it. Section boundaries are **hard cuts** between
@@ -61,7 +61,7 @@ HERO (100vh, ground: --panel)
 │ │  │  Harbour Two                                              │
 │ │  │  Two channels in, four out. Every figure measured.        │
 │ │  │  ────────────────────────────────────────                 │
-│ H2 │  H2 · 2×4 DESKTOP INTERFACE          SN 0001              │
+│ H2 │  H2 / 2×4 DESKTOP INTERFACE          SN 0001              │
 │    │                                            v scroll       │
 └────┴───────────────────────────────────────────────────────────┘
    ^ rail: clause no. at top, type designation at bottom, hairline between
@@ -127,6 +127,17 @@ Read back against the brief, four things in the first draft were defaults and we
 - **Cut: a warm off-white page with a rust accent.** That is the banned cream/terracotta reflex.
   The two-ground system (`--panel` / `--paper`) replaced it and is materially motivated.
 - **Kept deliberately:** mono is present but rationed to genuine readouts, per the brief carve-out.
+
+## 7. Implementation notes added during the build
+
+- **The two grounds interleave inside the macro-details section.** Each still sits on `--panel`
+  and its copy on `--paper`, so the alternating blocks keep the same material logic as the page
+  as a whole: hardware on the panel, words on the paper.
+- **`--ink-2` was darkened** from `#4A4F51` to `#3C4143`. The lighter value measured 4.05:1 on the
+  panel ground, which fails AA for body copy; the darker one measures 5.4:1 there and 9.1:1 on
+  paper, and still reads clearly as secondary.
+- **The rail marks the current clause with a square in `--signal`** rather than by dimming the
+  others, because dimming pushed the inactive numbers to 1.6:1 against the panel.
 
 Also banned during code review of this build: `→` appended to link text, meta strings joined with
 middle dots, identical rounded cards with soft grey shadows, gradient washes, colour-accented
