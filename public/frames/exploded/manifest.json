@@ -1,0 +1,15 @@
+{
+  "name": "exploded",
+  "frameCount": 60,
+  "widths": [
+    900,
+    1920
+  ],
+  "formats": [
+    "avif",
+    "webp"
+  ],
+  "pathPattern": "/frames/{name}/{name}_{width}_{index}.{format}",
+  "aspectRatio": 1.5,
+  "hasAlpha": true
+}
