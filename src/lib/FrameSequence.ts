@@ -16,6 +16,17 @@ export type FrameManifest = {
   pathPattern: string
   aspectRatio: number
   hasAlpha: boolean
+  /**
+   * Optional cache key, bumped every time the sequence is prepared. Frame
+   * filenames do not change between renders, so this is what stops a returning
+   * visitor from scrubbing last week's frames.
+   */
+  version?: string
+  /**
+   * Optional. Written when the sequence was rendered from the source model, so
+   * annotations can track named components instead of a fixed point.
+   */
+  anchorsPath?: string
 }
 
 export type FrameSequenceEvents = {
@@ -61,16 +72,23 @@ export function framePath(
   format: string,
   pad = 4,
 ): string {
-  return manifest.pathPattern
+  const path = manifest.pathPattern
     .replaceAll('{name}', manifest.name)
     .replaceAll('{width}', String(width))
     .replaceAll('{index}', String(index).padStart(pad, '0'))
     .replaceAll('{format}', format)
+  return manifest.version ? `${path}?v=${manifest.version}` : path
 }
 
-/** Fetch and validate a sequence manifest. The only entry point for one. */
+/**
+ * Fetch and validate a sequence manifest. The only entry point for one.
+ *
+ * Deliberately not force-cached: the manifest is the one file that changes
+ * when a sequence is re-rendered, so it has to obey normal revalidation. The
+ * frames themselves are safe to force-cache — their names change with content.
+ */
 export async function loadManifest(manifestUrl: string): Promise<FrameManifest> {
-  const response = await fetch(manifestUrl, { cache: 'force-cache' })
+  const response = await fetch(manifestUrl)
   if (!response.ok) throw new Error(`manifest ${response.status} ${manifestUrl}`)
   const manifest: unknown = await response.json()
   if (!isManifest(manifest)) throw new Error(`malformed manifest at ${manifestUrl}`)

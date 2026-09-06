@@ -1,9 +1,10 @@
-import { macroDetails, section, turntable, exploded } from '../content/product'
+import { macroDetails, section, stills, turntable, exploded } from '../content/product'
 import { FrameStill } from './FrameStill'
 
 const manifestFor: Record<string, string> = {
   [turntable.name]: turntable.manifestUrl,
   [exploded.name]: exploded.manifestUrl,
+  [stills.name]: stills.manifestUrl,
 }
 
 /**

@@ -25,7 +25,7 @@ export function Colophon() {
 
       <p className="measure mt-8 text-[0.8125rem] leading-[1.5] text-ink-2">{colophon.note}</p>
       <p className="legend mt-6 text-ink-2">
-        {product.panelLegend} <span className="readout ml-3">{product.serial}</span>
+        {product.panelLegend} <span className="ml-3">{product.stamp}</span>
       </p>
     </footer>
   )

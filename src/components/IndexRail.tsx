@@ -11,30 +11,36 @@ export function IndexRail() {
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
-        if (visible) setActiveId(visible.target.id)
-      },
-      { rootMargin: '-45% 0px -45% 0px', threshold: [0, 0.25, 0.5] },
-    )
-    for (const section of sections) {
-      const el = document.getElementById(section.id)
-      if (el) observer.observe(el)
-    }
-
+    /**
+     * Whichever section covers the middle of the viewport is the current one.
+     *
+     * This was an IntersectionObserver sorted by intersectionRatio, which got
+     * it wrong inside the pinned acts: ratio is measured against the target's
+     * own area, so a short section beats a full-height pinned one every time
+     * and the rail kept pointing at the hero.
+     */
     const onScroll = () => {
+      const middle = window.innerHeight / 2
+      let current = sections[0].id
+      for (const section of sections) {
+        const el = document.getElementById(section.id)
+        if (!el) continue
+        const { top, bottom } = el.getBoundingClientRect()
+        if (top <= middle && bottom > middle) current = section.id
+      }
+      setActiveId(current)
+
       const max = document.documentElement.scrollHeight - window.innerHeight
       setProgress(max > 0 ? Math.min(1, window.scrollY / max) : 0)
     }
+
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
 
     return () => {
-      observer.disconnect()
       window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
     }
   }, [])
 
@@ -67,7 +73,7 @@ export function IndexRail() {
                 {activeId === section.id ? (
                   <span
                     aria-hidden="true"
-                    className="absolute top-1/2 -left-3 h-1.5 w-1.5 -translate-y-1/2 bg-signal"
+                    className="absolute top-1/2 -left-3 h-1.5 w-1.5 -translate-y-1/2 bg-ink"
                   />
                 ) : null}
                 <span aria-hidden="true">{section.clause}</span>

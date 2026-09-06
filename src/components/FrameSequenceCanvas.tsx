@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { FrameSequence, type ImageBox } from '../lib/FrameSequence'
+import { loadAnchors, type SequenceAnchors } from '../lib/anchors'
 import { ui, type Annotation, type SequenceSpec } from '../content/product'
 import { AnnotationLayer } from './AnnotationLayer'
 import { ScrubScale } from './ScrubScale'
@@ -16,8 +17,13 @@ gsap.registerPlugin(ScrollTrigger)
 const COLUMN_RESERVE = 344
 const STRIP_RESERVE = 176
 const COMPACT_QUERY = '(max-width: 1023px)'
-/** Start decoding a sequence when the act is this far ahead of the viewport. */
-const PRELOAD_START = 'top bottom+=150%'
+/**
+ * Start decoding a sequence once the reader has begun scrolling towards it.
+ * Deliberately not "one viewport ahead": at rest the first act sits exactly at
+ * the fold, and letting it start there put a megabyte of frames in front of the
+ * hero image on a throttled connection.
+ */
+const PRELOAD_START = 'top bottom-=15%'
 
 
 
@@ -43,12 +49,15 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
   }, [])
   const needleRef = useRef<HTMLDivElement>(null)
   const scaleTrackRef = useRef<HTMLDivElement>(null)
+  /** Current frame index, read by the annotation layer from the same ticker. */
+  const frameRef = useRef(0)
 
   const [status, setStatus] = useState<Status>('loading')
   const [progress, setProgress] = useState(0)
   const [activeIds, setActiveIds] = useState<readonly string[]>([])
   const [imageBox, setImageBox] = useState<ImageBox>({ x: 0, y: 0, width: 0, height: 0 })
   const [stage, setStage] = useState({ width: 0, height: 0 })
+  const [anchors, setAnchors] = useState<SequenceAnchors | null>(null)
 
   useEffect(() => {
     if (reduced) return
@@ -100,6 +109,10 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
           return
         }
         sequence = seq
+
+        void loadAnchors(seq.manifest).then((data) => {
+          if (!cancelled) setAnchors(data)
+        })
 
         const syncLayout = () => {
           seq.resize()
@@ -160,6 +173,7 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
           const index = seq.currentIndex
           if (index === lastIndex) return
           lastIndex = index
+          frameRef.current = index
           if (readoutRef.current) readoutRef.current.textContent = String(index).padStart(4, '0')
           const next = annotations
             .filter((a) => index >= a.enterFrame && index <= a.exitFrame)
@@ -218,7 +232,10 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
         <header className="relative z-10 max-w-[34ch]">
           <div className="flex items-baseline gap-3">
             <span className="legend text-ink-2 lg:hidden">{clause}</span>
-            <h2 id={`${spec.name}-heading`} className="text-2xl leading-none font-semibold">
+            <h2
+              id={`${spec.name}-heading`}
+              className="text-xl leading-none font-semibold text-balance sm:text-2xl"
+            >
               {spec.heading}
             </h2>
           </div>
@@ -237,6 +254,8 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
             imageBox={imageBox}
             stage={stage}
             compact={compact}
+            anchors={anchors}
+            frameRef={frameRef}
           />
         </div>
 
@@ -244,7 +263,7 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
           {status === 'ready' ? (
             <div className="flex items-end gap-6">
               <div ref={scaleTrackRef} className="min-w-0 flex-1">
-                <ScrubScale ref={needleRef} label={spec.scaleLabel} />
+                <ScrubScale ref={needleRef} label={spec.scaleLabel} compact={compact} />
               </div>
               <p className="readout shrink-0 text-ink-2">
                 {/* Written from the ticker, so it deliberately has no children
@@ -322,7 +341,10 @@ function StaticSequence({
       <header className="max-w-[34ch]">
         <div className="flex items-baseline gap-3">
           <span className="legend text-ink-2 lg:hidden">{clause}</span>
-          <h2 id={`${spec.name}-heading`} className="text-2xl leading-none font-semibold">
+          <h2
+            id={`${spec.name}-heading`}
+            className="text-xl leading-none font-semibold text-balance sm:text-2xl"
+          >
             {spec.heading}
           </h2>
         </div>

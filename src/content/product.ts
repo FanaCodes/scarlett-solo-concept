@@ -1,6 +1,16 @@
 /**
  * Every word, number and annotation on the page comes from this file.
  * Components import from here and hold no copy of their own.
+ *
+ * This is an unofficial concept page for a real product. Nothing here is
+ * Focusrite's copy and nothing here is Focusrite's published data — see
+ * `specsNote` and the colophon, both of which say so on the page itself.
+ *
+ * Annotations are authored against the named components of the source model.
+ * `part` is the node name in the GLB; the render step writes where that node
+ * lands on every frame, and the leader line follows it. The frame ranges come
+ * from the visibility data in the same file, so an annotation is only up while
+ * its component is actually facing the camera.
  */
 
 // --- types -----------------------------------------------------------------
@@ -11,6 +21,12 @@ export type Annotation = {
   enterFrame: number
   /** Frame index it disappears on. */
   exitFrame: number
+  /**
+   * Name of the component in the source model. When the sequence carries an
+   * anchors file, the leader line tracks this part frame by frame; `anchor` is
+   * the fallback for a sequence rendered without one.
+   */
+  part?: string
   /** 0-1, relative to the drawn image box, not the canvas element. */
   anchor: { x: number; y: number }
   title: string
@@ -61,14 +77,23 @@ export type SequenceSpec = {
 
 // --- identity --------------------------------------------------------------
 
+/**
+ * Layout hint for the hero still. Shared with the build, which injects a
+ * matching <link rel="preload"> so the largest paint is requested from the
+ * HTML rather than after React has fetched the manifest.
+ */
+export const heroStillSizes = '(min-width: 1024px) 56rem, 92vw'
+
 export const product = {
-  maker: 'Harbour Instruments',
-  name: 'Harbour Two',
-  type: 'H2',
-  panelLegend: 'H2 / 2×4 DESKTOP INTERFACE',
-  serial: 'SN 0001',
+  maker: 'Focusrite',
+  name: 'Scarlett Solo',
+  type: 'SOLO',
+  panelLegend: 'SCARLETT SOLO / 2 IN, 2 OUT',
+  /** Sits opposite the maker in the hero. This page is not Focusrite's. */
+  stamp: 'Unofficial concept',
   positioning:
-    'Two discrete microphone preamplifiers, four analogue outputs, and a monitor path with nothing in it you did not ask for.',
+    'One microphone input, one instrument input, two balanced outputs and a headphone amplifier, over a single USB-C cable that also powers it.',
+  heroAlt: 'The Focusrite Scarlett Solo audio interface, seen from the front left.',
   scrollAffordance: 'Scroll to rotate',
 } as const
 
@@ -79,72 +104,76 @@ export const turntable: SequenceSpec = {
   manifestUrl: '/frames/turntable/manifest.json',
   heading: 'One turn around the unit',
   intro:
-    'A full rotation, held under your scroll. Six parts of the unit are called out as they come round.',
+    'A full rotation, held under your scroll. Six components are called out as they come round to face you.',
   scaleLabel: 'ROTATION / FRAME INDEX',
   scrollLength: { desktop: '+=300%', mobile: '+=200%' },
   keyFrames: [0, 30, 60, 90],
 }
 
 /**
- * Authored against frame indices in the turntable sequence. Anchors are
- * normalised to the drawn image box, so they survive any canvas size — but
- * they are tuned to the placeholder geometry and want a pass once the real
- * renders land.
+ * Rear panel first (roughly frames 32-69 of the rotation), then the front
+ * (79-119). Each range sits inside its component's visible window.
  */
 export const turntableAnnotations: Annotation[] = [
   {
-    id: 'preamps',
-    enterFrame: 4,
-    exitFrame: 26,
-    anchor: { x: 0.3, y: 0.66 },
-    title: 'Microphone inputs',
-    body: 'Two discrete transformer-coupled preamplifiers on a single board, laid out as mirrored channels so both signal paths are the same length.',
-    readout: 'EIN −130 dBu, 150 Ω, 60 dB',
-  },
-  {
-    id: 'gain',
-    enterFrame: 28,
-    exitFrame: 48,
-    anchor: { x: 0.44, y: 0.33 },
-    title: 'Gain encoder',
-    body: 'A stepped rotary encoder switching a relay ladder rather than sweeping a pot, so both channels can be matched by ear and then read off the panel.',
-    readout: '69 dB range, 1 dB steps',
-  },
-  {
-    id: 'conversion',
-    enterFrame: 50,
-    exitFrame: 68,
-    anchor: { x: 0.57, y: 0.47 },
-    title: 'Conversion and clocking',
-    body: 'A single low-jitter clock feeds both converters. There is no internal resampling: the rate you choose is the rate the converter runs at.',
-    readout: '24-bit / 192 kHz, ±2 ppm',
-  },
-  {
-    id: 'monitor',
-    enterFrame: 70,
-    exitFrame: 88,
-    anchor: { x: 0.6, y: 0.34 },
-    title: 'Monitor control',
-    body: 'Level is set by a relay-switched resistor ladder in the analogue domain, ahead of the outputs, so nothing is thrown away digitally to make it quieter.',
-    readout: 'Channel match ±0.05 dB',
-  },
-  {
-    id: 'headphones',
-    enterFrame: 90,
-    exitFrame: 106,
-    anchor: { x: 0.33, y: 0.62 },
-    title: 'Headphone outputs',
-    body: 'Two independent amplifiers, each with its own level control, driving anything from 16 to 600 Ω without running out of voltage.',
-    readout: '2 × 250 mW into 32 Ω',
+    id: 'usb',
+    part: 'USB',
+    enterFrame: 33,
+    exitFrame: 44,
+    anchor: { x: 0.463, y: 0.716 },
+    title: 'One cable',
+    body: 'A single USB-C connection carries audio in both directions and powers the unit. There is no separate supply to lose and nothing to install before it works.',
+    readout: 'USB-C, bus powered',
   },
   {
     id: 'chassis',
-    enterFrame: 108,
+    part: 'Body',
+    enterFrame: 46,
+    exitFrame: 57,
+    anchor: { x: 0.499, y: 0.507 },
+    title: 'Anodised aluminium shell',
+    body: 'The body is a single anodised aluminium extrusion. It is the structure and the shield at once, which is why there is no seam down either side.',
+    readout: 'Unibody, anodised',
+  },
+  {
+    id: 'mic-input',
+    part: 'Input2',
+    enterFrame: 59,
+    exitFrame: 68,
+    anchor: { x: 0.531, y: 0.623 },
+    title: 'Microphone input',
+    body: 'The XLR input sits on the rear panel, so the one cable you rarely unplug stays behind the unit and out of the way of your hands.',
+    readout: 'XLR, rear panel, 48 V',
+  },
+  {
+    id: 'gain',
+    part: 'Out1',
+    enterFrame: 81,
+    exitFrame: 92,
+    anchor: { x: 0.617, y: 0.551 },
+    title: 'Gain, with a halo',
+    body: 'A ring around each gain control lights green as signal arrives, then amber and red as you approach clipping. You set a level by looking at the knob you are already holding.',
+    readout: 'GREEN / AMBER / RED',
+  },
+  {
+    id: 'monitor',
+    part: 'Output',
+    enterFrame: 94,
+    exitFrame: 105,
+    anchor: { x: 0.653, y: 0.553 },
+    title: 'Monitor level',
+    body: 'The largest control on the unit is the one you reach for most: a single big knob for speaker level, in the middle of the panel where you cannot miss it.',
+    readout: 'Analogue, both outputs',
+  },
+  {
+    id: 'headphones',
+    part: 'HeadphoneAudio',
+    enterFrame: 107,
     exitFrame: 119,
-    anchor: { x: 0.5, y: 0.72 },
-    title: 'Chassis',
-    body: 'Milled from a single aluminium billet. The shell is the heatsink, the shield and the structure, which is why there are no seams along the sides.',
-    readout: '1.4 kg, 6061-T6',
+    anchor: { x: 0.731, y: 0.533 },
+    title: 'Headphones, separately',
+    body: 'The headphone output has its own level control beside its socket, so you can set what you hear without touching what the speakers are doing.',
+    readout: 'Front panel, independent',
   },
 ]
 
@@ -153,9 +182,9 @@ export const turntableAnnotations: Annotation[] = [
 export const exploded: SequenceSpec = {
   name: 'exploded',
   manifestUrl: '/frames/exploded/manifest.json',
-  heading: 'Four layers, taken apart',
+  heading: 'Taken apart along its depth',
   intro:
-    'The same unit separated along its depth axis: cover, main board, converter board, base.',
+    'The eight caps that actually come off the front, drawn out along the axis they were fitted on. Everything else is part of the shell.',
   scaleLabel: 'SEPARATION / FRAME INDEX',
   scrollLength: { desktop: '+=200%', mobile: '+=150%' },
   keyFrames: [0, 20, 40, 59],
@@ -163,86 +192,97 @@ export const exploded: SequenceSpec = {
 
 export const explodedClaims: Annotation[] = [
   {
-    id: 'ground-plane',
-    enterFrame: 5,
-    exitFrame: 24,
-    anchor: { x: 0.42, y: 0.52 },
-    title: 'Four layers, one ground plane',
-    body: 'Analogue and digital sections sit on opposite sides of an unbroken ground plane, joined at a single point beneath the converter.',
-    readout: '4-layer, 70 µm copper',
+    id: 'discrete-controls',
+    part: 'Out1',
+    enterFrame: 6,
+    exitFrame: 22,
+    anchor: { x: 0.308, y: 0.421 },
+    title: 'Eight caps, eight parts',
+    body: 'Four knob caps and four switch caps, each its own moulding on its own shaft. Nothing you touch is part of the panel it sits in.',
+    readout: '4 knobs, 4 switches',
   },
   {
-    id: 'isolation',
-    enterFrame: 25,
-    exitFrame: 43,
-    anchor: { x: 0.55, y: 0.44 },
-    title: 'Converter on its own island',
-    body: 'The converter and its clock have a separately regulated supply, so nothing on the USB side can reach them.',
-    readout: 'Supply noise < 3 µV RMS',
+    id: 'shell',
+    part: 'Body',
+    enterFrame: 24,
+    exitFrame: 40,
+    anchor: { x: 0.55, y: 0.431 },
+    title: 'The rest is one piece',
+    body: 'The sockets are fixed through the shell and the legends are printed onto it. Take the caps off and what is left is a single machined body closed by two end panels.',
+    readout: 'Aluminium, 2 end panels',
   },
   {
-    id: 'assembly',
-    enterFrame: 44,
+    id: 'front-face',
+    part: 'Output',
+    enterFrame: 42,
     exitFrame: 59,
-    anchor: { x: 0.47, y: 0.63 },
-    title: 'Serviceable, not sealed',
-    body: 'Six captive screws and no adhesive anywhere in the assembly. Every board can be lifted out and put back by hand.',
-    readout: '6 fasteners, no adhesive',
+    anchor: { x: 0.324, y: 0.667 },
+    title: 'Everything you touch faces you',
+    body: 'Every control, and both of the sockets you use daily, are on one face. Everything you connect once and forget is on the other.',
+    readout: 'Front: 4 controls, 2 jacks',
   },
 ]
 
 // --- macro details ---------------------------------------------------------
 
+/** A still library rather than a scrubbed sequence: four locked cameras. */
+export const stills = {
+  name: 'stills',
+  manifestUrl: '/frames/stills/manifest.json',
+} as const
+
 export const macroDetails: MacroDetail[] = [
   {
     id: 'panel',
-    still: { sequence: 'turntable', frame: 0 },
-    alt: 'The top panel of the H2 seen straight on, with both gain encoders and the level display.',
+    still: { sequence: 'stills', frame: 0 },
+    alt: 'The front panel of the Scarlett Solo, with both gain halos, the monitor knob and the headphone control.',
     title: 'The panel says what it does',
-    body: 'Legends are engraved and filled, not printed. Nothing on the top surface is there to be looked at rather than used.',
-    figure: { label: 'Legend depth', value: '0.15 mm' },
+    body: 'Every legend is set on the black panel in white: channel numbers, switch names, and the two sockets you reach for without looking.',
+    figure: { label: 'Front controls', value: '4' },
   },
   {
-    id: 'encoder',
-    still: { sequence: 'turntable', frame: 14 },
-    alt: 'Three-quarter view of the H2 showing the gain encoder and its detented collar.',
-    title: 'Detents you can count',
-    body: 'The encoder has a mechanical detent at every step, so a level can be set by feel in the dark and repeated the next day.',
-    figure: { label: 'Detent torque', value: '1.8 mNm' },
+    id: 'layout',
+    still: { sequence: 'stills', frame: 1 },
+    alt: 'The Scarlett Solo seen from above, showing the control layout and the maker mark on the lid.',
+    title: 'Read from left to right',
+    body: 'Inputs on the left, monitoring in the middle, headphones on the right. The layout follows the signal, so the panel doubles as a diagram of the unit.',
+    figure: { label: 'Gain controls', value: '2' },
   },
   {
     id: 'connectors',
-    still: { sequence: 'turntable', frame: 104 },
-    alt: 'The rear of the H2, showing the row of output connectors.',
+    still: { sequence: 'stills', frame: 2 },
+    alt: 'The rear of the Scarlett Solo, showing the USB-C socket, the Kensington slot, the two line outputs and the XLR input.',
     title: 'Connectors bolted to the shell',
     body: 'Every socket is fixed to the chassis rather than hanging off the board, so a pulled cable loads the aluminium and not the solder.',
-    figure: { label: 'Insertion cycles', value: '5000' },
+    figure: { label: 'Rear sockets', value: '4' },
   },
   {
-    id: 'interior',
-    still: { sequence: 'exploded', frame: 44 },
-    alt: 'The H2 with its cover lifted, showing the main board and the converter board.',
-    title: 'One board, two domains',
-    body: 'The analogue front end occupies its own half of the board, with the converter and clock behind a single-point ground tie.',
-    figure: { label: 'Board separation', value: '12 mm' },
+    id: 'underside',
+    still: { sequence: 'stills', frame: 3 },
+    alt: 'The underside of the Scarlett Solo, showing four rubber feet and the compliance label.',
+    title: 'Four feet and the small print',
+    body: 'The base carries what nobody is meant to look at: four rubber feet to keep it still on a desk, and the compliance marks, kept off every surface you can see.',
+    figure: { label: 'Feet', value: '4' },
   },
 ]
 
 // --- specifications --------------------------------------------------------
 
-// PLACEHOLDER SPECS — every figure below is a stand-in. Replace with the
-// measured values from the final production units before this page ships.
+// PLACEHOLDER SPECS — indicative figures for this design study, not Focusrite's
+// published data. Rows that would need a measurement are left blank on purpose
+// rather than guessed at; fill them from the official datasheet before this
+// page is presented as anything other than a concept.
 export const specGroups: SpecGroup[] = [
   {
     id: 'inputs',
     title: 'Inputs',
     rows: [
-      { label: 'Microphone inputs', value: '2', note: 'XLR, transformer-coupled' },
-      { label: 'Gain range', value: '69', unit: 'dB', note: '1 dB steps' },
-      { label: 'Equivalent input noise', value: '−130', unit: 'dBu', note: '150 Ω, 60 dB gain' },
-      { label: 'Maximum input level', value: '+12', unit: 'dBu' },
-      { label: 'Input impedance', value: '3.0', unit: 'kΩ' },
-      { label: 'Instrument inputs', value: '2', note: '1 MΩ, front panel' },
+      { label: 'Microphone input', value: '1', note: 'XLR, rear panel' },
+      { label: 'Instrument input', value: '1', note: '1/4 in TS, front panel' },
+      { label: 'Phantom power', value: '48', unit: 'V', note: 'switched' },
+      { label: 'Air mode', value: 'Yes', note: 'switched, microphone channel' },
+      { label: 'Gain range', value: '—', unit: 'dB', note: 'from datasheet' },
+      { label: 'Equivalent input noise', value: '—', unit: 'dBu', note: 'from datasheet' },
     ],
   },
   {
@@ -251,53 +291,51 @@ export const specGroups: SpecGroup[] = [
     rows: [
       { label: 'Resolution', value: '24', unit: 'bit' },
       { label: 'Sample rates', value: '44.1–192', unit: 'kHz' },
-      { label: 'Dynamic range', value: '120', unit: 'dB', note: 'A-weighted' },
-      { label: 'THD+N', value: '< 0.0008', unit: '%', note: '1 kHz, −1 dBFS' },
-      { label: 'Frequency response', value: '20–20k', unit: 'Hz', note: '±0.05 dB' },
-      { label: 'Clock stability', value: '±2', unit: 'ppm' },
+      { label: 'Dynamic range', value: '—', unit: 'dB', note: 'A-weighted, from datasheet' },
+      { label: 'THD+N', value: '—', unit: '%', note: 'from datasheet' },
+      { label: 'Frequency response', value: '—', unit: 'Hz', note: 'from datasheet' },
     ],
   },
   {
     id: 'outputs',
     title: 'Outputs',
     rows: [
-      { label: 'Line outputs', value: '4', note: 'balanced, impedance-compensated' },
-      { label: 'Maximum output level', value: '+18', unit: 'dBu' },
-      { label: 'Output impedance', value: '75', unit: 'Ω' },
-      { label: 'Headphone outputs', value: '2', note: 'independent amplifiers' },
-      { label: 'Headphone power', value: '250', unit: 'mW', note: 'per channel into 32 Ω' },
-      { label: 'Monitor attenuation', value: '0–96', unit: 'dB', note: 'relay ladder, analogue' },
+      { label: 'Line outputs', value: '2', note: 'balanced, 1/4 in TRS, rear' },
+      { label: 'Headphone output', value: '1', note: '1/4 in TRS, front, own level' },
+      { label: 'Direct monitor', value: 'Yes', note: 'switched, analogue' },
+      { label: 'Maximum output level', value: '—', unit: 'dBu', note: 'from datasheet' },
     ],
   },
   {
     id: 'physical',
     title: 'Physical',
     rows: [
-      { label: 'Width', value: '212', unit: 'mm' },
-      { label: 'Depth', value: '148', unit: 'mm' },
-      { label: 'Height', value: '52', unit: 'mm' },
-      { label: 'Weight', value: '1.42', unit: 'kg' },
-      { label: 'Chassis', value: '6061-T6', note: 'milled aluminium, anodised' },
       { label: 'Connection', value: 'USB-C', note: 'bus powered, class compliant' },
+      { label: 'Security slot', value: 'Yes', note: 'Kensington, rear' },
+      { label: 'Chassis', value: 'Aluminium', note: 'anodised unibody' },
+      { label: 'Feet', value: '4', note: 'rubber' },
+      { label: 'Dimensions', value: '—', unit: 'mm', note: 'from datasheet' },
+      { label: 'Weight', value: '—', unit: 'kg', note: 'from datasheet' },
     ],
   },
 ]
 
 export const specsNote =
-  'Figures are typical for a production unit at 24-bit / 48 kHz unless stated otherwise, measured at the outputs over a 20 Hz to 20 kHz bandwidth.'
+  'This is a concept page, not a datasheet. Measured figures are left blank rather than guessed at — take them from the manufacturer’s published specifications. The rows that are filled in describe what is visible on the unit itself.'
 
 // --- colophon --------------------------------------------------------------
 
 export const colophon = {
   intro:
-    'A portfolio piece. The Harbour Two is not a real product; the page is built the way a real one would be.',
+    'A portfolio piece: an unofficial concept page for the Focusrite Scarlett Solo, built to work a scroll-scrubbed render sequence through end to end. It is not affiliated with, endorsed by, or produced for Focusrite, and none of the copy here is theirs.',
   credits: [
+    { role: 'Subject', value: 'Focusrite Scarlett Solo, third generation' },
     { role: 'Modelling', value: 'Yannick' },
-    { role: 'Rendering', value: 'Placeholder sequences, generated procedurally' },
+    { role: 'Rendering', value: '184 frames, rendered offline from the source model' },
     { role: 'Design and build', value: 'Yannick, with Claude' },
     { role: 'Typefaces', value: 'IBM Plex Sans, IBM Plex Sans Condensed, IBM Plex Mono' },
   ],
-  note: 'Frame sequences are pre-rendered stills. No 3D runtime is loaded by this page.',
+  note: 'Focusrite and Scarlett are trademarks of Focusrite Audio Engineering Ltd, used here only to identify the product this study is about. Frame sequences are pre-rendered stills; no 3D runtime is loaded by this page.',
 }
 
 // --- section index (the datasheet rail) ------------------------------------
@@ -311,7 +349,7 @@ export type Section = {
 }
 
 export const sections: Section[] = [
-  { id: 'hero', clause: '0.0', title: 'Harbour Two' },
+  { id: 'hero', clause: '0.0', title: 'Scarlett Solo' },
   { id: 'turntable', clause: '1.0', title: 'The unit' },
   { id: 'exploded', clause: '2.0', title: 'Inside' },
   {

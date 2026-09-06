@@ -11,5 +11,7 @@
   ],
   "pathPattern": "/frames/{name}/{name}_{width}_{index}.{format}",
   "aspectRatio": 1.5,
-  "hasAlpha": true
+  "hasAlpha": true,
+  "version": "mtq3q84q",
+  "anchorsPath": "/frames/{name}/anchors.json"
 }

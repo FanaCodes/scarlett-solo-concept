@@ -1,0 +1,17 @@
+{
+  "name": "stills",
+  "frameCount": 4,
+  "widths": [
+    900,
+    1920
+  ],
+  "formats": [
+    "avif",
+    "webp"
+  ],
+  "pathPattern": "/frames/{name}/{name}_{width}_{index}.{format}",
+  "aspectRatio": 1.5,
+  "hasAlpha": true,
+  "version": "mtq3qaf0",
+  "anchorsPath": "/frames/{name}/anchors.json"
+}

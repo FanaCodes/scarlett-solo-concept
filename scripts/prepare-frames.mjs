@@ -105,6 +105,8 @@ export async function prepareFrames({
   avifQuality = DEFAULTS.avifQuality,
   webpQuality = DEFAULTS.webpQuality,
   concurrency = DEFAULTS.concurrency,
+  /** Extra keys merged into the manifest, e.g. a path to anchors.json. */
+  extraManifest,
   quiet = false,
 } = {}) {
   if (!inDir) throw new Error('prepareFrames: --in is required')
@@ -169,6 +171,10 @@ export async function prepareFrames({
     pathPattern: PATH_PATTERN,
     aspectRatio: Number((sourceWidth / sourceHeight).toFixed(4)),
     hasAlpha: sawAlpha,
+    // Frame filenames are stable across re-renders, so the runtime needs a
+    // cache key of its own or a returning visitor keeps the old sequence.
+    version: Date.now().toString(36),
+    ...extraManifest,
   }
   await writeFile(
     path.join(sequenceDir, 'manifest.json'),
