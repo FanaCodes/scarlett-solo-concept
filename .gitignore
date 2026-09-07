@@ -3,15 +3,13 @@ dist
 .DS_Store
 *.local
 .vite
+.vercel
 
-# Source 3D model — large binary, not consumed by the web build.
-# Kept on disk at model/ as the render source for the frame sequences.
+# Source 3D models — large binaries, and the web build never reads them.
+# Kept on disk under model/ as the render source for the frame sequences.
 model/*.glb
 
-# Intermediate PNGs emitted by make-placeholder-frames.mjs before conversion
-scripts/.tmp-frames
-
-# Scratch output from the render and audit scripts
+# Scratch output from the render and audit scripts.
 scripts/.tmp-frames
 scripts/.preview
 scripts/.shots
