@@ -32,6 +32,8 @@ export type FrameManifest = {
 export type FrameSequenceEvents = {
   /** 0..1, fired as frames land. */
   onProgress?: (progress: number) => void
+  /** Fired once enough frames are decoded that the act can be scrubbed. */
+  onUsable?: () => void
   /** Fired once every frame has been decoded (or given up on). */
   onReady?: (seq: FrameSequence) => void
   /** Fired once if the sequence cannot be used at all. */
@@ -43,6 +45,58 @@ export type ImageBox = { x: number; y: number; width: number; height: number }
 
 const DPR_CAP = 2
 const FETCH_CONCURRENCY = 6
+/**
+ * Share of a sequence that must be decoded before it can be scrubbed at all.
+ * Waiting for every frame meant that on a slow connection the reader crossed
+ * the whole act while it held frame 0, then it snapped to wherever they had
+ * scrolled. Scrubbing a partly-loaded sequence degrades honestly instead: the
+ * frames that exist play, and draw() holds the nearest loaded neighbour until
+ * the rest arrive.
+ */
+const USABLE_FRACTION = 0.15
+const USABLE_MINIMUM = 8
+
+/**
+ * The order frames are fetched in: coarse first, then refining.
+ *
+ * Fetching 0,1,2,3... means a part-loaded sequence only covers its beginning,
+ * so an act entered early scrubs for a moment and then sticks. Halving the
+ * stride each pass spreads the first arrivals across the whole sequence, so
+ * once the usable threshold is met the entire act can be scrubbed — coarsely
+ * at first, then filling in. draw() holds the nearest loaded neighbour, so the
+ * refinement is invisible apart from the motion getting smoother.
+ */
+/**
+ * The three acts all become visible within a couple of viewports of each other,
+ * so without this they download at once and split a slow connection three ways
+ * — none of them reaching a scrubbable state before the reader arrives. Only
+ * the opening phase of each sequence is serialised, in the order the acts were
+ * started, which is page order. Once an act can be scrubbed it releases the
+ * queue and fills in the rest alongside everyone else.
+ */
+let openingPhase: Promise<unknown> = Promise.resolve()
+function queueOpeningPhase<T>(run: () => Promise<T>): Promise<T> {
+  const result = openingPhase.then(run, run)
+  openingPhase = result.catch(() => undefined)
+  return result
+}
+
+export function loadOrder(count: number): number[] {
+  const order: number[] = []
+  const seen = new Set<number>()
+  const take = (index: number) => {
+    if (index < count && !seen.has(index)) {
+      seen.add(index)
+      order.push(index)
+    }
+  }
+  take(0)
+  take(count - 1)
+  for (let stride = 1 << Math.max(0, Math.floor(Math.log2(count))); stride >= 1; stride >>= 1) {
+    for (let i = stride; i < count; i += stride) take(i)
+  }
+  return order
+}
 /** Above this, the decoded footprint is worth telling the developer about. */
 const FRAME_WARN_THRESHOLD = 180
 /** If more than this share of frames fail, the sequence is unusable. */
@@ -143,10 +197,14 @@ export class FrameSequence {
   private pendingIndex = 0
   private dirty = true
   private loadStarted = false
+  private readonly usableAt: number
   private box: ImageBox = { x: 0, y: 0, width: 0, height: 0 }
   private destroyed = false
 
+  /** Every frame decoded. Drives the loading rule. */
   ready = false
+  /** Enough decoded to scrub against. Drives the scrub gate. */
+  usable = false
 
   private constructor(
     manifest: FrameManifest,
@@ -161,6 +219,10 @@ export class FrameSequence {
     this.width = width
     this.format = format
     this.bitmaps = new Array(manifest.frameCount)
+    this.usableAt = Math.min(
+      manifest.frameCount,
+      Math.max(USABLE_MINIMUM, Math.ceil(manifest.frameCount * USABLE_FRACTION)),
+    )
     const ctx = canvas.getContext('2d', { alpha: manifest.hasAlpha })
     if (!ctx) throw new Error('2D canvas context unavailable')
     this.ctx = ctx
@@ -194,6 +256,40 @@ export class FrameSequence {
     void this.loadAll()
   }
 
+  /** Fetch and decode a list of frame indices with a bounded worker pool. */
+  private async fetchFrames(indices: number[]): Promise<void> {
+    const { frameCount } = this.manifest
+    let cursor = 0
+    const workers = Array.from(
+      { length: Math.min(FETCH_CONCURRENCY, Math.max(1, indices.length)) },
+      async () => {
+        while (cursor < indices.length && !this.destroyed) {
+          const index = indices[cursor++]
+          if (this.bitmaps[index]) continue
+          try {
+            this.bitmaps[index] = await decodeFrame(this.frameUrl(index), this.controller.signal)
+            // Frame 0 is the poster the section holds until it can scrub.
+            if (index === 0) {
+              this.dirty = true
+              this.flush()
+            }
+          } catch {
+            // A single missing frame is survivable: draw() falls back to the
+            // nearest loaded neighbour. Too many, and the sequence is dead.
+            this.failedCount++
+          }
+          this.loaded++
+          if (!this.usable && this.loaded >= this.usableAt) {
+            this.usable = true
+            this.events.onUsable?.()
+          }
+          this.events.onProgress?.(this.loaded / frameCount)
+        }
+      },
+    )
+    await Promise.all(workers)
+  }
+
   private async loadAll(): Promise<void> {
     const { frameCount } = this.manifest
 
@@ -207,35 +303,21 @@ export class FrameSequence {
       )
     }
 
-    // Frame 0 first: it is the poster the pinned section holds until ready.
-    try {
-      this.bitmaps[0] = await decodeFrame(this.frameUrl(0), this.controller.signal)
-      this.loaded = 1
-      this.dirty = true
-      this.flush()
-      this.events.onProgress?.(1 / frameCount)
-    } catch (error) {
-      if (!this.destroyed) this.fail(error)
+    // Coarse to fine, and the opening stretch takes priority over the other
+    // acts so that whichever one the reader reaches first is the one that is
+    // ready. draw() holds the nearest loaded neighbour, so the sequence is
+    // scrubbable across its whole length as soon as the opening phase lands.
+    const order = loadOrder(frameCount)
+    const opening = order.slice(0, this.usableAt)
+    const rest = order.slice(this.usableAt)
+
+    await queueOpeningPhase(() => this.fetchFrames(opening))
+    if (this.destroyed) return
+    if (!this.bitmaps[0]) {
+      this.fail(new Error('frame 0 did not load'))
       return
     }
-
-    let cursor = 1
-    const workers = Array.from({ length: Math.min(FETCH_CONCURRENCY, frameCount) }, async () => {
-      while (cursor < frameCount && !this.destroyed) {
-        const index = cursor++
-        try {
-          this.bitmaps[index] = await decodeFrame(this.frameUrl(index), this.controller.signal)
-        } catch {
-          // A single missing frame is survivable: draw() falls back to the
-          // nearest loaded neighbour. Too many, and the sequence is dead.
-          this.failedCount++
-        }
-        this.loaded++
-        this.events.onProgress?.(this.loaded / frameCount)
-      }
-    })
-
-    await Promise.all(workers)
+    await this.fetchFrames(rest)
     if (this.destroyed) return
 
     if (this.failedCount > frameCount * FAILURE_RATIO) {
@@ -339,16 +421,32 @@ export class FrameSequence {
 }
 
 /**
- * One matchMedia read at init decides the tier for the whole session: the
- * narrow tier on phones, the wide tier everywhere else. Deliberately not
- * reactive — re-decoding a whole sequence on a resize would cost far more
- * than the sharpness it buys.
+ * One read at init decides the tier for the whole session: the narrow tier on
+ * phones, and also on a slow or metered connection, where the wide tier's extra
+ * megabytes cost more than the sharpness is worth — a sequence that has not
+ * arrived by the time you reach it is worth nothing at all. Deliberately not
+ * reactive: re-decoding a whole sequence mid-scroll would cost far more than it
+ * saves.
  */
+type NetworkInformation = { effectiveType?: string; saveData?: boolean }
+
+function prefersNarrowTier(): boolean {
+  const connection = (navigator as Navigator & { connection?: NetworkInformation }).connection
+  if (!connection) return false
+  // Only the two signals that are actually trustworthy. `downlink` was tried
+  // and dropped: it is a rounded estimate from recent history and reads about
+  // 1.5 Mbps on a fresh page even on a fast desktop connection, which quietly
+  // put every visitor on the narrow tier.
+  if (connection.saveData) return true
+  return /^(slow-2g|2g|3g)$/.test(connection.effectiveType ?? '')
+}
+
 export function pickWidthTier(widths: number[]): number {
   const sorted = [...widths].sort((a, b) => a - b)
+  if (typeof window === 'undefined') return sorted[0]
   const wantsWide =
-    typeof window !== 'undefined' &&
     window.matchMedia('(min-width: 768px)').matches &&
-    (window.devicePixelRatio || 1) * window.innerWidth > 900
+    (window.devicePixelRatio || 1) * window.innerWidth > 900 &&
+    !prefersNarrowTier()
   return wantsWide ? sorted[sorted.length - 1] : sorted[0]
 }

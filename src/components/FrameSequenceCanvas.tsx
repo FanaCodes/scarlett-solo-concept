@@ -18,12 +18,21 @@ const COLUMN_RESERVE = 344
 const STRIP_RESERVE = 176
 const COMPACT_QUERY = '(max-width: 1023px)'
 /**
- * Start decoding a sequence once the reader has begun scrolling towards it.
- * Deliberately not "one viewport ahead": at rest the first act sits exactly at
- * the fold, and letting it start there put a megabyte of frames in front of the
- * hero image on a throttled connection.
+ * Start decoding a sequence two viewports before it pins.
+ *
+ * This used to be `top bottom-=15%`, which only began the download once the act
+ * was already 765px from pinning. Since an act is not scrubbable until every
+ * frame is decoded, the reader arrived long before it was ready: on a 20 Mbps
+ * connection the turntable first moved 88% of the way through itself, and on
+ * 8 Mbps it never moved at all — the section held frame 0 and then snapped.
+ *
+ * The tight margin was there to keep frames from competing with the hero image
+ * for bandwidth, but `whenHeroReady()` below is what actually guarantees that.
+ * Two viewports of lead still staggers the three acts naturally: at rest only
+ * the first is in range, the second comes into range a third of the way through
+ * the first, and the third after that.
  */
-const PRELOAD_START = 'top bottom-=15%'
+const PRELOAD_START = 'top bottom+=200%'
 
 
 
@@ -153,8 +162,12 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
           },
           onUpdate: () => {
             // Gating: the act is pinned from the start so the page height never
-            // jumps, but it does not scrub until every frame is decoded.
-            if (!seq.ready) return
+            // jumps, and it does not scrub until enough frames exist to scrub
+            // against. Waiting for *every* frame meant a reader on a slow
+            // connection crossed the whole act while it held frame 0, then it
+            // snapped. Past the threshold, draw() holds the nearest loaded
+            // neighbour, so a part-loaded act plays as far as it has arrived.
+            if (!seq.usable) return
             seq.requestFrame(proxy.frame)
           },
         })

@@ -223,8 +223,16 @@ at all, and it writes through the same conversion pipeline.
 - **Loading** fetches every frame and decodes it with `createImageBitmap` into an indexed array,
   six at a time, reporting progress. Frame 0 lands first and is drawn immediately. Nothing
   constructs an `Image` in a scroll handler.
-- **When** loading starts is gated twice: the hero still must have painted, and the act must be
-  within 1.5 viewports. The largest paint on the page never queues behind megabytes of frames.
+- **When** loading starts is gated on the hero still having painted, and on the act being within
+  two viewports. The hero gate is what keeps the largest paint off the frames' critical path; the
+  distance is set generously because an act that is not ready when you reach it is worse than one
+  that costs a little bandwidth early.
+- **What order** frames arrive in is coarse to fine — 0, last, midpoint, quarters, and so on — so a
+  part-loaded sequence covers its whole length rather than just its beginning, and the opening
+  stretch of each act is fetched ahead of the other acts. An act becomes scrubbable at 15% decoded
+  rather than at 100%, with `draw()` holding the nearest loaded neighbour until the rest arrive.
+  Loading in index order and waiting for every frame meant that on a 20 Mbps connection the
+  turntable first moved 88% of the way through itself, and on 8 Mbps it never moved at all.
 - **Drawing** happens only inside the GSAP ticker. The scrub animates a proxy object, rounds it,
   and requests a frame; the ticker paints only when the integer index actually changed. The canvas
   backing store is `clientWidth × devicePixelRatio` capped at DPR 2, and the frame is drawn with
@@ -233,7 +241,8 @@ at all, and it writes through the same conversion pipeline.
   leader lines are rewritten from the ticker as the tracked component moves, so React re-renders
   only when the active annotation changes, not once per frame.
 - **Gating**: the section pins from the start, so page height never jumps, but it does not scrub
-  until every frame is decoded. Until then a determinate progress rule sits under the frame.
+  until enough frames exist to scrub against. The determinate progress rule stays under the frame
+  until the sequence is fully decoded.
 - **Failure**: if the sequence cannot load, it is logged once, the pin is released so the page
   scrolls normally, and the section falls back to a single static frame with every annotation
   visible as text. Nothing throws into the render tree. A handful of individually missing frames is
