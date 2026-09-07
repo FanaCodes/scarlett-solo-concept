@@ -10,3 +10,11 @@ model/*.glb
 
 # Intermediate PNGs emitted by make-placeholder-frames.mjs before conversion
 scripts/.tmp-frames
+
+# Scratch output from the render and audit scripts
+scripts/.tmp-frames
+scripts/.preview
+scripts/.shots
+scripts/.*.json
+scripts/.*.mjs
+scripts/.*.png
