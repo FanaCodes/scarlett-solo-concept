@@ -8,6 +8,8 @@ import { Colophon } from './components/Colophon'
 import {
   exploded,
   explodedClaims,
+  plug,
+  plugAnnotations,
   section,
   turntable,
   turntableAnnotations,
@@ -60,6 +62,13 @@ export function App() {
             spec={exploded}
             annotations={explodedClaims}
             clause={section('exploded').clause}
+          />
+        </Suspense>
+        <Suspense fallback={<ActPlaceholder spec={plug} />}>
+          <FrameSequenceCanvas
+            spec={plug}
+            annotations={plugAnnotations}
+            clause={section('plug').clause}
           />
         </Suspense>
         <MacroDetails />

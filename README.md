@@ -1,9 +1,14 @@
-# Harbour Two — product page
+# Scarlett Solo — an unofficial concept page
 
-A scroll-driven marketing page for a desktop audio interface. The signature mechanic is a
-pre-rendered image sequence scrubbed by scroll: a pinned canvas plays frames forward and backward
-under scroll control, with annotations that latch onto named components of the model and follow
-them as the unit turns.
+A scroll-driven product page for the Focusrite Scarlett Solo, built as a portfolio piece. The
+signature mechanic is a pre-rendered image sequence scrubbed by scroll: a pinned canvas plays
+frames forward and backward under scroll control, with annotations that latch onto named
+components of the model and follow them as the unit turns.
+
+**Not affiliated with, endorsed by, or produced for Focusrite.** None of the copy is theirs, and
+the specification table deliberately leaves measured figures blank rather than inventing numbers
+under someone else's name. Focusrite and Scarlett are trademarks of Focusrite Audio Engineering
+Ltd, used here only to identify the product this study is about.
 
 **The page loads no 3D runtime.** Nothing under `src/` imports three.js, R3F or a GLB loader; the
 sequences are ordinary images, decoded once and drawn to a 2D canvas. three.js and puppeteer-core
@@ -22,8 +27,8 @@ npm install
 npm run dev
 ```
 
-The repository ships with both frame sequences already rendered in `public/frames`, so
-`npm run dev` gives a working page immediately.
+The repository ships with all four frame sequences already rendered in `public/frames`, so
+`npm run dev` gives a working page immediately — the source models are not needed to run it.
 
 | Script | What it does |
 | --- | --- |
@@ -44,7 +49,7 @@ Stack: Vite, React, TypeScript, Tailwind CSS v4, GSAP with ScrollTrigger, Lenis.
 ## Rendering the sequences from the model
 
 ```bash
-npm run frames:render                 # both sequences, 2400x1600
+npm run frames:render                 # every sequence, 2400x1600
 node scripts/render-frames.mjs --preview        # 8 frames each, half size, no conversion
 node scripts/render-frames.mjs --only turntable
 ```
@@ -55,16 +60,31 @@ disk. It then runs the frames through `prepare-frames.mjs`, the same conversion 
 render would go through. Set `CHROME_PATH` if the browser is somewhere unusual. A full run is
 about twenty seconds of rendering plus a couple of minutes of AVIF/WebP encoding.
 
-Both sequences are camera-locked. The camera is fitted once, to the widest the sequence ever gets,
+Every sequence is camera-locked. The camera is fitted once, to the widest the sequence ever gets,
 by projecting the model's bounds on every frame and converging on a distance — so the subject
 fills the frame without a hint of drift between frames.
 
-**What moves.** The turntable turns the unit a full 360° at 3° per frame, starting on a
-three-quarter view so frame 0 is the strongest still for the hero. While it turns, the two gain
-encoders, the monitor knob and the headphone control rotate on their own axes, and the 48 V, Air,
-Inst and Direct buttons each depress and release once. The exploded sequence separates every
-panel-mounted component along the model's depth axis, front controls forward and rear connectors
-back, staggered so they come apart in order.
+**The four sequences.**
+
+| Sequence | Frames | What it does |
+| --- | --- | --- |
+| `turntable` | 120 | A full 360° at 3° per frame, starting on a three-quarter view so frame 0 is the strongest still for the hero. The gain encoders, the monitor knob and the headphone control turn on their own axes as it goes round, and the four switches each depress and release once. |
+| `exploded` | 60 | The four knob caps separating along the model's depth axis. Only those: see below. |
+| `plug` | 48 | The instrument cable going into the front socket, camera close and locked. |
+| `stills` | 4 | A still library — front, top, rear and underside, each its own locked camera. |
+
+**What separates, and what does not.** The exploded act moves the four knob caps and nothing else,
+because nothing else comes off: the switch caps are moulded actuators that press rather than pull,
+the through-panel jack barrels are long cylinders that sit inside the chassis, the USB-C socket is
+soldered to the board and the Kensington slot is a hole in the shell. Silkscreen stays printed on
+the panel. Each of those was tried and taken back out, and `scripts/render/render.js` says why at
+the list itself.
+
+**The cable.** `model/InstrumentCable.glb` is a second model, three named parts (`Metal`,
+`BasePart`, `Cable`) along one axis. The render aligns it to the socket rather than by hand: it
+reads `Input1`'s position out of the interface model, and seats the plug where the barrel shoulder
+meets the chassis face, so the whole pin goes in and the depth is derived rather than dialled in.
+The `Inst` switch goes down a few frames after it lands, which is the order you do it in.
 
 ### `anchors.json`
 
@@ -103,10 +123,15 @@ frames are older. It warns rather than fails: stale frames are still a working p
 
 ### The source model
 
-`model/FocusriteSolo.glb` is the render subject. It is git-ignored (30 MB), is never served, and is
-never loaded by the page. Its 19 named nodes are the vocabulary the annotations are written
-against: `Body`, `Out1`, `Out2`, `Output`, `HeadphoneAudio`, `HeadphoneInput`, `Input1`, `Input2`,
-`L`, `R`, `USB`, `48V`, `Air`, `Inst`, `Direct`, `Legs`, `K`, `Icons`, `Icons2`.
+`model/FocusriteSolo.glb` and `model/InstrumentCable.glb` are the render subjects. Both are
+git-ignored (they are large, and the site never needs them), are never served, and are never
+loaded by the page. Their named nodes are the vocabulary the annotations are written against:
+`Body`, `Out1`, `Out2`, `Output`, `HeadphoneAudio`, `HeadphoneInput`, `Input1`, `Input2`, `L`,
+`R`, `USB`, `48V`, `Air`, `Inst`, `Direct`, `Legs`, `K`, `Icons`, `Icons2`, and on the cable
+`Metal`, `BasePart`, `Cable`.
+
+Because they are git-ignored, a fresh clone can build and deploy the site but cannot re-render it
+without the models.
 
 ---
 
@@ -227,6 +252,19 @@ at all, and it writes through the same conversion pipeline.
 - Keyboard: a skip link, a visible focus ring on everything focusable, and section links in the
   index rail carrying their titles for screen readers.
 - Specifications are a real table with row headers, not a grid of divs.
+
+## Deployment
+
+Deployed on Vercel from this repository; every push to `main` builds and ships.
+
+`vercel.json` sets the framework, the build command and one thing that matters: frame images and
+fonts are served `immutable` for a year, because every frame URL carries the manifest's `?v=` cache
+key and so changes name whenever a sequence is re-rendered. `manifest.json` deliberately has no
+rule and keeps Vercel's revalidating default — it is the one file that must be re-read to discover
+a new render.
+
+The build needs no models: `public/frames` is committed, and the freshness check quietly passes
+when `model/` is absent.
 
 ## Performance
 

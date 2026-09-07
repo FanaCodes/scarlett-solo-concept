@@ -22,7 +22,13 @@ const COLUMN_WIDTH = 316
 const COLUMN_GAP = 28
 const STRIP_OFFSET = 172
 
-type Leader = { path: SVGPathElement | null; dot: SVGCircleElement | null; ring: SVGCircleElement | null }
+/**
+ * Each leader is drawn twice: a wide stroke in the ground colour underneath,
+ * then the hairline on top. Over the panel ground the halo is invisible; over
+ * the unit's black front panel it is what keeps an ink line and an ink anchor
+ * from disappearing into the product.
+ */
+type Leader = { paths: SVGPathElement[]; circles: SVGCircleElement[] }
 
 /**
  * Annotations are real DOM text over the canvas, never drawn into it: they stay
@@ -96,14 +102,15 @@ export function AnnotationLayer({
       for (const annotation of annotations) {
         if (!annotation.part) continue
         const leader = leaders.current.get(annotation.id)
-        if (!leader?.path) continue
+        if (!leader || leader.paths.length === 0) continue
         const anchor = toPixels(anchorAt(annotation, frame))
         const { labelX, labelY } = slotFor(annotation)
-        leader.path.setAttribute('d', leaderPath(anchor, labelX, labelY))
-        leader.dot?.setAttribute('cx', String(anchor.x))
-        leader.dot?.setAttribute('cy', String(anchor.y))
-        leader.ring?.setAttribute('cx', String(anchor.x))
-        leader.ring?.setAttribute('cy', String(anchor.y))
+        const d = leaderPath(anchor, labelX, labelY)
+        for (const path of leader.paths) path.setAttribute('d', d)
+        for (const circle of leader.circles) {
+          circle.setAttribute('cx', String(anchor.x))
+          circle.setAttribute('cy', String(anchor.y))
+        }
       }
     }
     gsap.ticker.add(tick)
@@ -114,19 +121,19 @@ export function AnnotationLayer({
   const leaderFor = (id: string): Leader => {
     let entry = leaders.current.get(id)
     if (!entry) {
-      entry = { path: null, dot: null, ring: null }
+      entry = { paths: [], circles: [] }
       leaders.current.set(id, entry)
     }
     return entry
   }
-  const setPath = (id: string) => (node: SVGPathElement | null) => {
-    leaderFor(id).path = node
+  // Written by slot rather than pushed: these callbacks have a new identity on
+  // every render, so React detaches and reattaches each one, and appending
+  // would grow the arrays without bound.
+  const setPath = (id: string, slot: number) => (node: SVGPathElement | null) => {
+    leaderFor(id).paths[slot] = node as SVGPathElement
   }
-  const setDot = (id: string) => (node: SVGCircleElement | null) => {
-    leaderFor(id).dot = node
-  }
-  const setRing = (id: string) => (node: SVGCircleElement | null) => {
-    leaderFor(id).ring = node
+  const setCircle = (id: string, slot: number) => (node: SVGCircleElement | null) => {
+    leaderFor(id).circles[slot] = node as SVGCircleElement
   }
 
   return (
@@ -147,14 +154,31 @@ export function AnnotationLayer({
               style={{ opacity: active.has(a.id) ? 1 : 0, transition: 'opacity 180ms linear' }}
             >
               <path
-                ref={setPath(a.id)}
+                ref={setPath(a.id, 0)}
+                d={leaderPath(anchor, labelX, labelY)}
+                fill="none"
+                stroke="var(--color-panel)"
+                strokeWidth="3.5"
+                strokeLinejoin="round"
+              />
+              <circle
+                ref={setCircle(a.id, 0)}
+                cx={anchor.x}
+                cy={anchor.y}
+                r="9"
+                fill="none"
+                stroke="var(--color-panel)"
+                strokeWidth="3.5"
+              />
+              <path
+                ref={setPath(a.id, 1)}
                 d={leaderPath(anchor, labelX, labelY)}
                 fill="none"
                 stroke="var(--color-ink)"
                 strokeWidth="1"
               />
               <circle
-                ref={setRing(a.id)}
+                ref={setCircle(a.id, 1)}
                 cx={anchor.x}
                 cy={anchor.y}
                 r="9"
@@ -163,10 +187,17 @@ export function AnnotationLayer({
                 strokeWidth="1"
               />
               <circle
-                ref={setDot(a.id)}
+                ref={setCircle(a.id, 2)}
                 cx={anchor.x}
                 cy={anchor.y}
-                r="3"
+                r="3.6"
+                fill="var(--color-panel)"
+              />
+              <circle
+                ref={setCircle(a.id, 3)}
+                cx={anchor.x}
+                cy={anchor.y}
+                r="2.2"
                 fill="var(--color-ink)"
               />
             </g>

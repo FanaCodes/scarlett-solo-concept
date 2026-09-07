@@ -12,6 +12,9 @@
   "pathPattern": "/frames/{name}/{name}_{width}_{index}.{format}",
   "aspectRatio": 1.5,
   "hasAlpha": true,
-  "version": "mtq3pkfw",
-  "anchorsPath": "/frames/{name}/anchors.json"
+  "version": "mtrnheyj",
+  "anchorsPath": "/frames/{name}/anchors.json",
+  "sources": [
+    "model/FocusriteSolo.glb"
+  ]
 }

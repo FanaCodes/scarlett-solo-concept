@@ -184,3 +184,19 @@ always looked like: an unofficial concept for the real unit.
   underside.
 - **The exploded act only takes off what comes off.** Silkscreen, through-panel jack barrels, the
   USB-C socket and the Kensington slot all stay with the shell. What separates is the eight caps.
+
+## 10. Revision: a third act, and what it taught the drawing
+
+The instrument cable became a third pinned act between the exploded view and the details — the
+same scrub mechanic, but close on one socket, where the only thing that moves is the cable coming
+in. It is the first section on the page about *using* the unit rather than looking at it.
+
+- **Leader lines and anchors gained a halo.** They are ink hairlines, which read cleanly on the
+  panel ground and vanished completely over the unit's black front panel. Each is now drawn twice,
+  a wide stroke in the ground colour underneath and the hairline on top. Over the ground the halo
+  is invisible; over the product it is what keeps the line legible. This is the ordinary technical
+  drawing answer and it fixed the other two acts as well.
+- **Nothing separates that cannot separate.** Three passes were needed to get the exploded act
+  honest: the silkscreen came off the panel, then the jack barrels slid out like rods, then the
+  switch caps and the USB socket turned out not to be removable either. What is left is four knob
+  caps, which is the truth and a better claim than the one the copy started with.

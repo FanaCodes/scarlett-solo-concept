@@ -50,20 +50,47 @@ const fill = new THREE.DirectionalLight(0xffffff, 0.55)
 fill.position.set(3.0, 1.2, -2.4)
 scene.add(fill)
 
-const gltf = await new GLTFLoader().loadAsync('/model.glb')
+const loader = new GLTFLoader()
+const gltf = await loader.loadAsync('/model.glb')
 const model = gltf.scene
 
 // Named top-level parts, which is what annotations are authored against.
 const parts = new Map()
 for (const child of model.children) if (child.name) parts.set(child.name, child)
 
+/**
+ * The instrument cable is a second model, kept in a group of its own so the
+ * whole plug assembly moves as one along the socket axis. Its parts join the
+ * same map, so annotations can track the plug exactly as they track a knob.
+ */
+let cable = null
+if (config.cableUrl) {
+  const cableGltf = await loader.loadAsync(config.cableUrl)
+  cable = new THREE.Group()
+  cable.name = 'CableAssembly'
+  for (const child of [...cableGltf.scene.children]) {
+    cable.add(child)
+    if (child.name) parts.set(child.name, child)
+  }
+}
+
 const meshes = []
-model.traverse((o) => {
-  if (o.isMesh) {
+const partOfMesh = new Map()
+function indexMeshes(root, owner) {
+  root.traverse((o) => {
+    if (!o.isMesh) return
     o.frustumCulled = false
     meshes.push(o)
-  }
-})
+    partOfMesh.set(o, owner)
+  })
+}
+for (const [, node] of parts) indexMeshes(node, node)
+
+/** True only when the node and every ancestor is visible. */
+function inScene(node) {
+  for (let o = node; o; o = o.parent) if (!o.visible) return false
+  return true
+}
 
 /** World-space bounding box of one node's geometry. */
 function boxOf(object) {
@@ -81,6 +108,71 @@ const pivot = new THREE.Group()
 scene.add(pivot)
 pivot.add(model)
 model.position.sub(modelCenter)
+
+/** Mean of a box's two smaller extents: the cross-section of a cylinder. */
+function crossSection(box) {
+  const size = box.getSize(new THREE.Vector3())
+  const [a, b] = [size.x, size.y, size.z].sort((x, y) => x - y)
+  return (a + b) / 2
+}
+
+/**
+ * Fit the cable to a socket on the interface.
+ *
+ * Every number here is measured off the two models rather than typed in —
+ * which axis the plug points down, how big it is, where it stops. The cable has
+ * already been re-exported at a different orientation and a different scale
+ * once, and re-deriving costs nothing while hand-tuning would have to be redone
+ * each time.
+ */
+let plug = null
+if (cable) {
+  pivot.add(cable)
+  pivot.rotation.y = 0
+  cable.position.set(0, 0, 0)
+  cable.quaternion.identity()
+  cable.scale.setScalar(1)
+  pivot.updateMatrixWorld(true)
+
+  const socket = parts.get(config.socket ?? 'Input1')
+  const socketCentre = boxOf(socket).getCenter(new THREE.Vector3())
+  // The face the plug goes into: the front of the chassis, not of the barrel,
+  // which is mostly buried inside it.
+  const faceZ = boxOf(parts.get('Body')).max.z
+  const pin = parts.get('Metal')
+  const barrel = parts.get('BasePart') ?? parts.get('Cable')
+
+  // Size: the pin fills most of the socket it goes into.
+  cable.scale.setScalar((crossSection(boxOf(socket)) * config.pinToSocket) / crossSection(boxOf(pin)))
+  cable.updateMatrixWorld(true)
+
+  // Direction: the plug points from the barrel towards the pin, whichever way
+  // round the model was exported. Turn that onto the socket's axis, which the
+  // plug travels down as it goes in.
+  const axis = boxOf(pin)
+    .getCenter(new THREE.Vector3())
+    .sub(boxOf(barrel).getCenter(new THREE.Vector3()))
+    .normalize()
+  cable.quaternion.setFromUnitVectors(axis, new THREE.Vector3(0, 0, -1))
+  cable.updateMatrixWorld(true)
+
+  // Across the panel: put the pin on the socket's axis.
+  const pinCentre = boxOf(pin).getCenter(new THREE.Vector3())
+  cable.position.x += socketCentre.x - pinCentre.x
+  cable.position.y += socketCentre.y - pinCentre.y
+  cable.updateMatrixWorld(true)
+
+  // Depth: seated is where the barrel's shoulder meets the panel, so the whole
+  // pin goes in — which is what a jack does and what it has to look like.
+  const seated = cable.position.z + (faceZ + config.seatGap - boxOf(barrel).min.z)
+  plug = {
+    socket,
+    seated,
+    withdrawn: seated + config.approach,
+    rest: new THREE.Vector3(cable.position.x, cable.position.y, seated),
+  }
+  cable.visible = false
+}
 
 const camera = new THREE.PerspectiveCamera(lensFov, width / height, 0.1, 200)
 
@@ -185,9 +277,12 @@ function applyTurntableMotion(t) {
 
 /**
  * Exploded view: only the parts that genuinely come off the unit — the four
- * knob caps and the four switch caps.
+ * knob caps, and nothing else.
  *
  * Everything else stays put, deliberately:
+ *
+ *   The switch caps (48V, Air, Inst, Direct). Moulded actuators that sit in
+ *   the panel and press; they do not pull off it.
  *
  *   Surface graphics (Icons, Icons2). Silkscreen is printed on the panel, not
  *   fitted to it. Floating it forward peeled the legends off the front.
@@ -200,15 +295,10 @@ function applyTurntableMotion(t) {
  *   the other is a hole in the shell. Neither is a component you can take out.
  */
 const EXPLODE = [
-  // Knob caps first, then the switch caps behind them.
   { name: 'Output', k: 2.6 },
-  { name: 'HeadphoneAudio', k: 2.6 },
-  { name: 'Out1', k: 2.2 },
-  { name: 'Out2', k: 2.2 },
-  { name: '48V', k: 1.6 },
-  { name: 'Air', k: 1.6 },
-  { name: 'Inst', k: 1.6 },
-  { name: 'Direct', k: 1.6 },
+  { name: 'HeadphoneAudio', k: 2.4 },
+  { name: 'Out1', k: 2.0 },
+  { name: 'Out2', k: 1.8 },
 ]
 const EXPLODE_SPREAD = 1.05
 
@@ -221,11 +311,35 @@ function applyExplodedMotion(t) {
   }
 }
 
+/**
+ * The plug goes in under the reader's scroll: a steady approach, then it seats
+ * and stops. The beat that sells it is not the easing — with a scrub the reader
+ * controls the speed — it is that something changes state on the frame it
+ * lands. Here the Inst switch goes down once the plug is home, which is the
+ * order you do it in anyway.
+ */
+const SEAT_AT = 0.78
+const SWITCH_AT = 0.88
+
+function applyPlugMotion(t) {
+  if (!plug) return
+  const travel = Math.min(1, t / SEAT_AT)
+  const eased = easeInOut(travel)
+  cable.position.z = plug.withdrawn + (plug.seated - plug.withdrawn) * eased
+
+  const inst = parts.get('Inst')
+  if (inst && t > SWITCH_AT) {
+    const amount = Math.min(1, (t - SWITCH_AT) / 0.06)
+    inst.translateZ(-PRESS_DEPTH * amount)
+  }
+}
+
 // --- anchors -----------------------------------------------------------------
 
 const raycaster = new THREE.Raycaster()
 
 function anchorFor(node) {
+  if (!inScene(node)) return { point: { x: 0, y: 0 }, visible: false }
   const box = boxOf(node)
   const centre = box.getCenter(new THREE.Vector3())
   const projected = centre.clone().project(camera)
@@ -238,12 +352,13 @@ function anchorFor(node) {
   const near = camera.position.distanceTo(centre) - sphere.radius
   const direction = centre.clone().sub(camera.position).normalize()
   raycaster.set(camera.position, direction)
-  const hits = raycaster.intersectObjects(meshes, false)
+  const hits = raycaster.intersectObjects(
+    meshes.filter((mesh) => inScene(mesh)),
+    false,
+  )
   let visible = false
   if (hits.length) {
-    let owner = hits[0].object
-    while (owner.parent && owner.parent !== model) owner = owner.parent
-    visible = owner === node || hits[0].distance >= near - 0.02
+    visible = partOfMesh.get(hits[0].object) === node || hits[0].distance >= near - 0.02
   }
   const inFrame = point.x > 0.02 && point.x < 0.98 && point.y > 0.02 && point.y < 0.98
   return { point, visible: visible && inFrame }
@@ -262,12 +377,21 @@ async function renderSequence(spec) {
     startAzimuth = 0,
     elevation = cameraElevation,
     views = [],
+    focusRadius = 0,
   } = spec
+
+  // The cable is only in the shot for the act it belongs to.
+  if (cable) {
+    cable.visible = mode === 'plug'
+    cable.position.copy(plug.rest)
+  }
 
   const poseFor = (t) => {
     resetParts()
+    if (cable) cable.position.copy(plug.rest)
     if (mode === 'turntable') applyTurntableMotion(t)
     else if (mode === 'exploded') applyExplodedMotion(t)
+    else if (mode === 'plug') applyPlugMotion(t)
     pivot.rotation.y =
       mode === 'turntable'
         ? THREE.MathUtils.degToRad(startAzimuth) - t * Math.PI * 2
@@ -327,11 +451,23 @@ async function renderSequence(spec) {
 
   // Framing is decided once, from the widest the sequence ever gets, so the
   // camera is genuinely locked for every frame.
+  //
+  // The plug act frames a fixed box around the socket instead of the whole
+  // unit: it is a close-up, and the cable is meant to run out of frame rather
+  // than shrink the interface to fit itself in.
   const cornersPerFrame = []
   const union = new THREE.Box3()
   for (let i = 0; i < frameCount; i++) {
     poseFor(frameCount > 1 ? i / (frameCount - 1) : 0)
-    const box = boxOf(model)
+    // Expanded mostly across the frame, barely in depth: a cube's corners
+    // project to its diagonal, which would pull the camera much further back
+    // than the shot needs.
+    const box =
+      focusRadius > 0
+        ? boxOf(plug.socket).expandByVector(
+            new THREE.Vector3(focusRadius, focusRadius * 0.5, focusRadius * 0.22),
+          )
+        : boxOf(model)
     union.union(box)
     const corners = []
     for (const x of [box.min.x, box.max.x]) {

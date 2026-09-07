@@ -38,6 +38,19 @@ const SEQUENCES = [
   // A three-quarter view at frame 0, so the hero still is the strongest angle.
   { name: 'turntable', frameCount: 120, mode: 'turntable', elevation: 17, startAzimuth: -28 },
   { name: 'exploded', frameCount: 60, mode: 'exploded', azimuth: -34, elevation: 21 },
+  // The instrument cable going in, framed close on the socket it enters.
+  {
+    name: 'plug',
+    mode: 'plug',
+    frameCount: 48,
+    azimuth: -22,
+    elevation: 12,
+    socket: 'Input1',
+    focusRadius: 2.05,
+    // The only sequence the cable appears in, so the only one an edit to the
+    // cable model makes stale.
+    usesCable: true,
+  },
   // A still library, not a sequence: each frame has its own locked camera, so
   // the macro details can show angles the turntable never reaches.
   {
@@ -93,7 +106,8 @@ function parseArgs(argv) {
   return args
 }
 
-async function startServer({ modelPath, config, onFrame, onAnchors }) {
+async function startServer({ modelPath, cablePath, config, onFrame, onAnchors }) {
+  void cablePath
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost')
 
@@ -123,6 +137,8 @@ async function startServer({ modelPath, config, onFrame, onAnchors }) {
         file = path.join(RENDER_DIR, 'render.js')
       } else if (url.pathname === '/model.glb') {
         file = modelPath
+      } else if (url.pathname === '/cable.glb') {
+        file = cablePath
       } else if (url.pathname === '/config.json') {
         res.writeHead(200, { 'content-type': MIME['.json'] }).end(JSON.stringify(config))
         return
@@ -152,6 +168,7 @@ async function main() {
   const args = parseArgs(process.argv.slice(2))
   const preview = Boolean(args.preview)
   const modelPath = typeof args.model === 'string' ? args.model : 'model/FocusriteSolo.glb'
+  const cablePath = typeof args.cable === 'string' ? args.cable : 'model/InstrumentCable.glb'
   const outDir = typeof args.out === 'string' ? args.out : 'public/frames'
   const only = typeof args.only === 'string' ? args.only.split(',') : null
 
@@ -172,8 +189,18 @@ async function main() {
   const anchorsBySequence = new Map()
   const { server, port } = await startServer({
     modelPath,
+    cablePath,
     config: {
       ...size,
+      cableUrl: existsSync(cablePath) ? '/cable.glb' : null,
+      socket: 'Input1',
+      // How far the pin sits inside the socket once seated, and how far out
+      // the plug starts, both in model units.
+      seatGap: 0.015,
+      approach: 1.9,
+      // Pin diameter as a fraction of the socket's outer diameter. The one
+      // tuning number in the fit; everything else is measured off the models.
+      pinToSocket: 0.66,
       // 50mm on full frame: 2 * atan(24 / (2 * 50)).
       lensFov: 26.99,
       cameraElevation: 17,
@@ -251,11 +278,20 @@ async function main() {
       await writeFile(path.join(sequenceOut, 'anchors.json'), JSON.stringify(anchors) + '\n', 'utf8')
     }
 
+    // Record which models the sequence was rendered from, so the freshness
+    // check can compare each one against its own inputs instead of against
+    // whichever model happens to be newest.
+    const sources = [modelPath]
+    if (sequence.usesCable && existsSync(cablePath)) sources.push(cablePath)
+
     await prepareFrames({
       inDir,
       outDir,
       name: sequence.name,
-      extraManifest: anchors ? { anchorsPath: '/frames/{name}/anchors.json' } : undefined,
+      extraManifest: {
+        ...(anchors ? { anchorsPath: '/frames/{name}/anchors.json' } : {}),
+        sources,
+      },
     })
     await rm(inDir, { recursive: true, force: true })
   }

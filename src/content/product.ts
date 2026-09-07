@@ -184,7 +184,7 @@ export const exploded: SequenceSpec = {
   manifestUrl: '/frames/exploded/manifest.json',
   heading: 'Taken apart along its depth',
   intro:
-    'The eight caps that actually come off the front, drawn out along the axis they were fitted on. Everything else is part of the shell.',
+    'The four knob caps drawn out along the axis they were fitted on. They are the only parts that come off; everything else is the shell.',
   scaleLabel: 'SEPARATION / FRAME INDEX',
   scrollLength: { desktop: '+=200%', mobile: '+=150%' },
   keyFrames: [0, 20, 40, 59],
@@ -196,19 +196,19 @@ export const explodedClaims: Annotation[] = [
     part: 'Out1',
     enterFrame: 6,
     exitFrame: 22,
-    anchor: { x: 0.308, y: 0.421 },
-    title: 'Eight caps, eight parts',
-    body: 'Four knob caps and four switch caps, each its own moulding on its own shaft. Nothing you touch is part of the panel it sits in.',
-    readout: '4 knobs, 4 switches',
+    anchor: { x: 0.299, y: 0.423 },
+    title: 'Four caps, and that is all',
+    body: 'The knob caps are separate mouldings, each pressed onto its own shaft. Nothing else on the front comes away: the switches are moulded into the panel and the sockets are fixed through the shell.',
+    readout: '4 knob caps',
   },
   {
     id: 'shell',
     part: 'Body',
     enterFrame: 24,
     exitFrame: 40,
-    anchor: { x: 0.55, y: 0.431 },
+    anchor: { x: 0.545, y: 0.434 },
     title: 'The rest is one piece',
-    body: 'The sockets are fixed through the shell and the legends are printed onto it. Take the caps off and what is left is a single machined body closed by two end panels.',
+    body: 'The sockets are fixed through the shell, the switches are part of the panel and the legends are printed onto it. Take the four caps off and what is left is a single machined body closed by two end panels.',
     readout: 'Aluminium, 2 end panels',
   },
   {
@@ -216,10 +216,56 @@ export const explodedClaims: Annotation[] = [
     part: 'Output',
     enterFrame: 42,
     exitFrame: 59,
-    anchor: { x: 0.324, y: 0.667 },
+    anchor: { x: 0.311, y: 0.679 },
     title: 'Everything you touch faces you',
     body: 'Every control, and both of the sockets you use daily, are on one face. Everything you connect once and forget is on the other.',
     readout: 'Front: 4 controls, 2 jacks',
+  },
+]
+
+// --- act III: plugging in ---------------------------------------------------
+
+export const plug: SequenceSpec = {
+  name: 'plug',
+  manifestUrl: '/frames/plug/manifest.json',
+  heading: 'Plugging in',
+  intro:
+    'A quarter-inch jack going into the front socket, held under your scroll. The camera is close and locked; only the cable moves.',
+  scaleLabel: 'INSERTION / FRAME INDEX',
+  scrollLength: { desktop: '+=150%', mobile: '+=120%' },
+  keyFrames: [0, 20, 36, 47],
+}
+
+export const plugAnnotations: Annotation[] = [
+  {
+    id: 'jack',
+    part: 'Metal',
+    enterFrame: 4,
+    exitFrame: 20,
+    anchor: { x: 0.393, y: 0.58 },
+    title: 'A quarter-inch jack',
+    body: 'The oldest connector still in daily use, and the reason a guitar can be plugged into a computer without an adapter in the way.',
+    readout: '6.35 mm, tip and sleeve',
+  },
+  {
+    id: 'socket',
+    part: 'Input1',
+    enterFrame: 23,
+    exitFrame: 38,
+    anchor: { x: 0.5, y: 0.5 },
+    title: 'Straight into the shell',
+    body: 'The socket is mounted through the front panel and fixed to the chassis, so the force of a plug going in lands on aluminium rather than on a solder joint.',
+    readout: 'Panel mounted, front',
+  },
+  {
+    id: 'inst',
+    part: 'Inst',
+    enterFrame: 41,
+    exitFrame: 47,
+    anchor: { x: 0.56, y: 0.551 },
+    title: 'Then press Inst',
+    body: 'Seated, the socket is still expecting a line signal. The switch beside it changes the input to instrument level, which is the step everyone forgets once.',
+    readout: 'Inst: line / instrument',
   },
 ]
 
@@ -330,8 +376,8 @@ export const colophon = {
     'A portfolio piece: an unofficial concept page for the Focusrite Scarlett Solo, built to work a scroll-scrubbed render sequence through end to end. It is not affiliated with, endorsed by, or produced for Focusrite, and none of the copy here is theirs.',
   credits: [
     { role: 'Subject', value: 'Focusrite Scarlett Solo, third generation' },
-    { role: 'Modelling', value: 'Yannick' },
-    { role: 'Rendering', value: '184 frames, rendered offline from the source model' },
+    { role: 'Modelling', value: 'Yannick — interface and instrument cable' },
+    { role: 'Rendering', value: '232 frames, rendered offline from the source models' },
     { role: 'Design and build', value: 'Yannick, with Claude' },
     { role: 'Typefaces', value: 'IBM Plex Sans, IBM Plex Sans Condensed, IBM Plex Mono' },
   ],
@@ -352,14 +398,15 @@ export const sections: Section[] = [
   { id: 'hero', clause: '0.0', title: 'Scarlett Solo' },
   { id: 'turntable', clause: '1.0', title: 'The unit' },
   { id: 'exploded', clause: '2.0', title: 'Inside' },
+  { id: 'plug', clause: '3.0', title: 'Plugging in' },
   {
     id: 'details',
-    clause: '3.0',
+    clause: '4.0',
     title: 'Detail',
     intro: 'Four things that are easier to show than to claim.',
   },
-  { id: 'specifications', clause: '4.0', title: 'Specifications', intro: specsNote },
-  { id: 'colophon', clause: '5.0', title: 'Colophon' },
+  { id: 'specifications', clause: '5.0', title: 'Specifications', intro: specsNote },
+  { id: 'colophon', clause: '6.0', title: 'Colophon' },
 ]
 
 /** Components look sections up by id rather than by position. */
