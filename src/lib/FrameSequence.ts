@@ -189,10 +189,13 @@ export class FrameSequence {
   private readonly controller = new AbortController()
 
   private bitmaps: (ImageBitmap | undefined)[]
+  /** Which width tier each decoded frame currently is, for the refine pass. */
+  private bitmapWidth: number[]
   private width: number
+  /** The tier the opening phase uses; equal to `width` when there is only one. */
+  private readonly openingWidth: number
   private format: string
   private loaded = 0
-  private failedCount = 0
   private lastDrawnIndex = -1
   private pendingIndex = 0
   private dirty = true
@@ -219,6 +222,8 @@ export class FrameSequence {
     this.width = width
     this.format = format
     this.bitmaps = new Array(manifest.frameCount)
+    this.bitmapWidth = new Array(manifest.frameCount).fill(0)
+    this.openingWidth = Math.min(...manifest.widths)
     this.usableAt = Math.min(
       manifest.frameCount,
       Math.max(USABLE_MINIMUM, Math.ceil(manifest.frameCount * USABLE_FRACTION)),
@@ -257,7 +262,12 @@ export class FrameSequence {
   }
 
   /** Fetch and decode a list of frame indices with a bounded worker pool. */
-  private async fetchFrames(indices: number[]): Promise<void> {
+  /**
+   * Fetch and decode a list of frame indices at one width tier, with a bounded
+   * worker pool. A frame already held at this tier is skipped; one held at a
+   * narrower tier is replaced and the old bitmap closed.
+   */
+  private async fetchFrames(indices: number[], width: number): Promise<void> {
     const { frameCount } = this.manifest
     let cursor = 0
     const workers = Array.from(
@@ -265,20 +275,30 @@ export class FrameSequence {
       async () => {
         while (cursor < indices.length && !this.destroyed) {
           const index = indices[cursor++]
-          if (this.bitmaps[index]) continue
+          if (this.bitmapWidth[index] >= width) continue
+          let bitmap: ImageBitmap | undefined
           try {
-            this.bitmaps[index] = await decodeFrame(this.frameUrl(index), this.controller.signal)
-            // Frame 0 is the poster the section holds until it can scrub.
-            if (index === 0) {
-              this.dirty = true
-              this.flush()
-            }
+            bitmap = await decodeFrame(this.frameUrl(index, width), this.controller.signal)
           } catch {
             // A single missing frame is survivable: draw() falls back to the
             // nearest loaded neighbour. Too many, and the sequence is dead.
-            this.failedCount++
+            continue
           }
-          this.loaded++
+          if (this.destroyed) {
+            bitmap.close()
+            return
+          }
+          const previous = this.bitmaps[index]
+          this.bitmaps[index] = bitmap
+          this.bitmapWidth[index] = width
+          if (previous) previous.close()
+          else this.loaded++
+
+          // Redraw when the frame on screen has just arrived or got sharper.
+          if (index === 0 || index === this.lastDrawnIndex) {
+            this.dirty = true
+            this.flush()
+          }
           if (!this.usable && this.loaded >= this.usableAt) {
             this.usable = true
             this.events.onUsable?.()
@@ -303,25 +323,26 @@ export class FrameSequence {
       )
     }
 
-    // Coarse to fine, and the opening stretch takes priority over the other
-    // acts so that whichever one the reader reaches first is the one that is
-    // ready. draw() holds the nearest loaded neighbour, so the sequence is
-    // scrubbable across its whole length as soon as the opening phase lands.
+    // Coarse to fine, and the opening stretch is fetched at the narrowest tier
+    // so the act becomes scrubbable in a fraction of the bytes. The full-width
+    // pass then replaces those frames. draw() scales whatever bitmap it has
+    // into the same box, so the only visible difference is that the first
+    // moments of a slow load are softer.
     const order = loadOrder(frameCount)
     const opening = order.slice(0, this.usableAt)
-    const rest = order.slice(this.usableAt)
 
-    await queueOpeningPhase(() => this.fetchFrames(opening))
+    await queueOpeningPhase(() => this.fetchFrames(opening, this.openingWidth))
     if (this.destroyed) return
     if (!this.bitmaps[0]) {
       this.fail(new Error('frame 0 did not load'))
       return
     }
-    await this.fetchFrames(rest)
+    await this.fetchFrames(order, this.width)
     if (this.destroyed) return
 
-    if (this.failedCount > frameCount * FAILURE_RATIO) {
-      this.fail(new Error(`${this.failedCount}/${frameCount} frames failed to load`))
+    const missing = this.bitmaps.reduce((count, bitmap) => count + (bitmap ? 0 : 1), 0)
+    if (missing > frameCount * FAILURE_RATIO) {
+      this.fail(new Error(`${missing}/${frameCount} frames failed to load`))
       return
     }
 
@@ -335,8 +356,8 @@ export class FrameSequence {
     this.events.onFail?.(error instanceof Error ? error : new Error(String(error)))
   }
 
-  private frameUrl(index: number): string {
-    return framePath(this.manifest, this.width, index, this.format)
+  private frameUrl(index: number, width: number): string {
+    return framePath(this.manifest, width, index, this.format)
   }
 
   /** Nearest loaded frame, so a gap in the sequence never blanks the canvas. */

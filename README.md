@@ -232,7 +232,13 @@ at all, and it writes through the same conversion pipeline.
   stretch of each act is fetched ahead of the other acts. An act becomes scrubbable at 15% decoded
   rather than at 100%, with `draw()` holding the nearest loaded neighbour until the rest arrive.
   Loading in index order and waiting for every frame meant that on a 20 Mbps connection the
-  turntable first moved 88% of the way through itself, and on 8 Mbps it never moved at all.
+  turntable first moved 88% of the way through itself.
+- **At what size**: that opening stretch is fetched from the *narrowest* width tier, and the
+  full-width pass then replaces those frames in place. `draw()` scales whatever bitmap it holds
+  into the same box, so the only visible difference is that the opening moments of a slow load are
+  softer. It costs about 8% extra bytes and buys a usable act on a slow link: on a 3 Mbps profile
+  the turntable animates from 30% of the way in showing 12 distinct frames, against 88% and 4
+  frames without it. On 8 Mbps and above it makes no measurable difference either way.
 - **Drawing** happens only inside the GSAP ticker. The scrub animates a proxy object, rounds it,
   and requests a frame; the ticker paints only when the integer index actually changed. The canvas
   backing store is `clientWidth × devicePixelRatio` capped at DPR 2, and the frame is drawn with
