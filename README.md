@@ -239,6 +239,11 @@ at all, and it writes through the same conversion pipeline.
   softer. It costs about 8% extra bytes and buys a usable act on a slow link: on a 3 Mbps profile
   the turntable animates from 30% of the way in showing 12 distinct frames, against 88% and 4
   frames without it. On 8 Mbps and above it makes no measurable difference either way.
+- **In what order between acts**: an opening phase preempts every refining pass, including one
+  already running. Without that the last act on the page was starved — on the deployed site its
+  opening competed with the full-width passes of the two acts above it, and it had managed two
+  frames by the time the reader arrived. Openings are small and short, so letting them cut in
+  costs the refine almost nothing.
 - **Drawing** happens only inside the GSAP ticker. The scrub animates a proxy object, rounds it,
   and requests a frame; the ticker paints only when the integer index actually changed. The canvas
   backing store is `clientWidth × devicePixelRatio` capped at DPR 2, and the frame is drawn with

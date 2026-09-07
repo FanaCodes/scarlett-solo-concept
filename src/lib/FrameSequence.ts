@@ -75,10 +75,27 @@ const USABLE_MINIMUM = 8
  * queue and fills in the rest alongside everyone else.
  */
 let openingPhase: Promise<unknown> = Promise.resolve()
+let openingPending = 0
+
 function queueOpeningPhase<T>(run: () => Promise<T>): Promise<T> {
+  openingPending++
   const result = openingPhase.then(run, run)
-  openingPhase = result.catch(() => undefined)
+  openingPhase = result.catch(() => undefined).finally(() => {
+    openingPending--
+  })
   return result
+}
+
+/**
+ * Refining passes yield to any opening phase still outstanding, including one
+ * queued after they started. Without this the last act on the page was starved:
+ * its opening competed with the full-width passes of the two acts above it, and
+ * over a real connection it had barely begun by the time the reader arrived.
+ * Openings are small and short, so letting them cut in costs the refine almost
+ * nothing.
+ */
+function openingsOutstanding(): Promise<unknown> | null {
+  return openingPending > 0 ? openingPhase : null
 }
 
 export function loadOrder(count: number): number[] {
@@ -267,7 +284,7 @@ export class FrameSequence {
    * worker pool. A frame already held at this tier is skipped; one held at a
    * narrower tier is replaced and the old bitmap closed.
    */
-  private async fetchFrames(indices: number[], width: number): Promise<void> {
+  private async fetchFrames(indices: number[], width: number, yieldToOpenings = false): Promise<void> {
     const { frameCount } = this.manifest
     let cursor = 0
     const workers = Array.from(
@@ -276,6 +293,11 @@ export class FrameSequence {
         while (cursor < indices.length && !this.destroyed) {
           const index = indices[cursor++]
           if (this.bitmapWidth[index] >= width) continue
+          if (yieldToOpenings) {
+            const pending = openingsOutstanding()
+            if (pending) await pending.catch(() => undefined)
+            if (this.destroyed) return
+          }
           let bitmap: ImageBitmap | undefined
           try {
             bitmap = await decodeFrame(this.frameUrl(index, width), this.controller.signal)
@@ -337,7 +359,7 @@ export class FrameSequence {
       this.fail(new Error('frame 0 did not load'))
       return
     }
-    await this.fetchFrames(order, this.width)
+    await this.fetchFrames(order, this.width, true)
     if (this.destroyed) return
 
     const missing = this.bitmaps.reduce((count, bitmap) => count + (bitmap ? 0 : 1), 0)
