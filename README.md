@@ -254,6 +254,16 @@ at all, and it writes through the same conversion pipeline.
 - **Gating**: the section pins from the start, so page height never jumps, but it does not scrub
   until enough frames exist to scrub against. The determinate progress rule stays under the frame
   until the sequence is fully decoded.
+- **When the pin is created** matters as much as anything else here. ScrollTrigger measures a
+  trigger's start and end against the layout as it exists at creation, so pinning an act before one
+  above it on the page gives it positions that the earlier act's spacer then invalidates. Creating
+  each pin inside its manifest fetch meant the order was whichever request won — on the deployed
+  site that was exploded, then turntable, then plug, and the result was jumps and skipped stretches
+  throughout. The pin is now created synchronously during mount, which is page order, driving a
+  normalised 0..1 proxy so it needs nothing from the manifest; `refreshPriority` holds that order
+  on every later refresh. The Suspense placeholder reserves the pinned section *and* its scroll
+  length, so the document is its final height from the first paint instead of growing by nearly six
+  thousand pixels once the acts mount.
 - **Failure**: if the sequence cannot load, it is logged once, the pin is released so the page
   scrolls normally, and the section falls back to a single static frame with every annotation
   visible as text. Nothing throws into the render tree. A handful of individually missing frames is

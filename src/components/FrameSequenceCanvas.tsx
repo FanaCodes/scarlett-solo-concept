@@ -3,12 +3,12 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { FrameSequence, type ImageBox } from '../lib/FrameSequence'
 import { loadAnchors, type SequenceAnchors } from '../lib/anchors'
-import { ui, type Annotation, type SequenceSpec } from '../content/product'
+import { sections, ui, type Annotation, type SequenceSpec } from '../content/product'
 import { AnnotationLayer } from './AnnotationLayer'
 import { ScrubScale } from './ScrubScale'
 import { FrameStill } from './FrameStill'
 import { getManifest } from '../lib/useManifest'
-import { useMediaQuery, useReducedMotion } from '../lib/motion'
+import { COMPACT_QUERY, useMediaQuery, useReducedMotion } from '../lib/motion'
 import { whenHeroReady } from '../lib/heroReady'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -16,7 +16,6 @@ gsap.registerPlugin(ScrollTrigger)
 /** Room reserved beside (desktop) or below (compact) the frame for annotations. */
 const COLUMN_RESERVE = 344
 const STRIP_RESERVE = 176
-const COMPACT_QUERY = '(max-width: 1023px)'
 /**
  * Start decoding a sequence two viewports before it pins.
  *
@@ -96,6 +95,65 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
       tween = null
     }
 
+    /**
+     * The pin is created here, synchronously, before the manifest is fetched.
+     *
+     * It used to be created inside the fetch callback, which meant the three
+     * acts were pinned in whichever order their manifests happened to resolve
+     * — on the deployed site that was exploded, then turntable, then plug.
+     * ScrollTrigger measures a trigger's start and end against the layout as it
+     * exists when the trigger is created, so pinning an act before one above it
+     * gives it positions that the earlier act's spacer then invalidates. That
+     * is what produced jumps and skipped stretches. Creating them during mount
+     * puts them in page order, and refreshPriority keeps that order on every
+     * later refresh.
+     *
+     * The tween drives a normalised 0..1 proxy rather than a frame index, so it
+     * needs nothing from the manifest and the frame count can arrive later.
+     */
+    const pageIndex = Math.max(0, sections.findIndex((entry) => entry.id === spec.name))
+    const proxy = { progress: 0 }
+    tween = gsap.to(proxy, {
+      progress: 1,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top top',
+        end: compact ? spec.scrollLength.mobile : spec.scrollLength.desktop,
+        pin: true,
+        scrub: 0.5,
+        invalidateOnRefresh: true,
+        refreshPriority: -pageIndex,
+      },
+      onUpdate: () => {
+        const seq = sequence
+        // Gating: the act is pinned from the start so the page height never
+        // jumps, and it does not scrub until enough frames exist to scrub
+        // against. Past that threshold draw() holds the nearest loaded
+        // neighbour, so a part-loaded act plays as far as it has arrived.
+        if (!seq || !seq.usable) return
+        seq.requestFrame(proxy.progress * (seq.manifest.frameCount - 1))
+      },
+    })
+    trigger = tween.scrollTrigger ?? null
+
+    // Decoding starts only once the hero still has painted and the act is
+    // within striking distance of the viewport, so the largest paint on the
+    // page never queues behind a few megabytes of frames.
+    let loadRequested = false
+    preload = ScrollTrigger.create({
+      trigger: section,
+      start: PRELOAD_START,
+      once: true,
+      refreshPriority: -pageIndex,
+      onEnter: () => {
+        void whenHeroReady().then(() => {
+          loadRequested = true
+          sequence?.load()
+        })
+      },
+    })
+
     FrameSequence.create(spec.manifestUrl, canvas, {
       onProgress: (value) => {
         const percent = Math.round(value * 100)
@@ -118,6 +176,7 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
           return
         }
         sequence = seq
+        if (loadRequested) seq.load()
 
         void loadAnchors(seq.manifest).then((data) => {
           if (!cancelled) setAnchors(data)
@@ -133,45 +192,6 @@ export function FrameSequenceCanvas({ spec, annotations, clause }: Props) {
 
         observer = new ResizeObserver(syncLayout)
         observer.observe(stageEl)
-
-        // Decoding starts only once the hero still has painted and the act is
-        // within striking distance of the viewport, so the largest paint on the
-        // page never queues behind a few megabytes of frames.
-        preload = ScrollTrigger.create({
-          trigger: section,
-          start: PRELOAD_START,
-          once: true,
-          onEnter: () => {
-            void whenHeroReady().then(() => seq.load())
-          },
-        })
-
-        const proxy = { frame: 0 }
-        tween = gsap.to(proxy, {
-          frame: seq.manifest.frameCount - 1,
-          ease: 'none',
-          snap: 'frame',
-          scrollTrigger: {
-            trigger: section,
-            start: 'top top',
-            end: compact ? spec.scrollLength.mobile : spec.scrollLength.desktop,
-            pin: true,
-            scrub: 0.5,
-            anticipatePin: 1,
-            invalidateOnRefresh: true,
-          },
-          onUpdate: () => {
-            // Gating: the act is pinned from the start so the page height never
-            // jumps, and it does not scrub until enough frames exist to scrub
-            // against. Waiting for *every* frame meant a reader on a slow
-            // connection crossed the whole act while it held frame 0, then it
-            // snapped. Past the threshold, draw() holds the nearest loaded
-            // neighbour, so a part-loaded act plays as far as it has arrived.
-            if (!seq.usable) return
-            seq.requestFrame(proxy.frame)
-          },
-        })
-        trigger = tween.scrollTrigger ?? null
 
         // Every paint happens here, inside the GSAP ticker — never in a scroll
         // handler, and never more than once per frame index.

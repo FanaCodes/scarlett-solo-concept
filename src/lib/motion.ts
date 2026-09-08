@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 
 export const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)'
+/** Below this the acts shorten and the annotations move under the frame. */
+export const COMPACT_QUERY = '(max-width: 1023px)'
 
 /** Read once, synchronously — used by modules that must decide before first paint. */
 export function prefersReducedMotion(): boolean {
