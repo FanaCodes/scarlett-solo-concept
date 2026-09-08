@@ -248,6 +248,12 @@ at all, and it writes through the same conversion pipeline.
   and requests a frame; the ticker paints only when the integer index actually changed. The canvas
   backing store is `clientWidth × devicePixelRatio` capped at DPR 2, and the frame is drawn with
   contain math against the manifest's `aspectRatio`.
+- **Every still reserves its box from the manifest**, not from the image. `width: auto` on an
+  image that has not loaded has no intrinsic size, and inside a flex column that collapses it to
+  nothing — each macro still measured 0x0 until its bytes arrived and then shoved its row down by
+  287px, well after the reader had scrolled past. The `<picture>` wrapper carries a definite width
+  (it is inline and shrink-to-fit by default, so a percentage on the image inside resolves against
+  a box that depends on the image), and the image takes its aspect ratio from the manifest.
 - **Annotations** are DOM text positioned with that same contain math, recomputed on resize. Their
   leader lines are rewritten from the ticker as the tracked component moves, so React re-renders
   only when the active annotation changes, not once per frame.

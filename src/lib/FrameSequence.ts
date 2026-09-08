@@ -159,7 +159,10 @@ export function framePath(
  * frames themselves are safe to force-cache — their names change with content.
  */
 export async function loadManifest(manifestUrl: string): Promise<FrameManifest> {
-  const response = await fetch(manifestUrl)
+  // High priority because layout waits on it: a still cannot reserve its box
+  // until the aspect ratio is known, and behind six in-flight frame requests
+  // this 300-byte file was arriving eight seconds late.
+  const response = await fetch(manifestUrl, { priority: 'high' } as RequestInit)
   if (!response.ok) throw new Error(`manifest ${response.status} ${manifestUrl}`)
   const manifest: unknown = await response.json()
   if (!isManifest(manifest)) throw new Error(`malformed manifest at ${manifestUrl}`)
